@@ -13,11 +13,13 @@ Options:
   -i, --input_assembly PATH  Path to input assembly in FASTA format
                              [required]
   -db, --database PATH       Path to your MLST database  [required]
-  -o, --outdir PATH          Root directory to store all output files
+  -o, --out_dir PATH         Root directory to store all output files
                              [required]
-  --create_db                Set this flag to re-create the blastDB files
-                             using makeblastdb in the specified database
-                             directory.
+  --create_db                Set this flag to create the blastDB files using
+                             makeblastdb in the specified database
+                             directory.Will re-create the database files if
+                             they are already present.
+  -v, --verbose              Set this flag to enable more verbose logging.
   --version                  Specify this flag to print the version and exit.
   --help                     Show this message and exit.
   ```
