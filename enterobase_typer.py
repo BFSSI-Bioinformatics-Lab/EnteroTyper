@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# TODO: Fix the inconsistent naming between the GitHub project and PyCharm project. Rename to EnterbaseTyper.
+# TODO: Fix the inconsistent naming between the GitHub project and PyCharm project. Rename to EnterobaseTyper.
 
 __version__ = "0.0.1"
 __author__ = "Forest Dussault"
@@ -131,7 +131,7 @@ def prepare_df_list_multiprocess(database_files: list, input_assembly: Path, out
 
 def closest_allele_df(database_file, input_assembly, outdir):
     database_file = database_file.with_suffix(".blastDB")
-    blastn_file, locus_name = call_blastn(database_file=database_file, query_fasta=input_assembly, outdir=outdir)
+    blastn_file, locus_name = call_blastn(database_file=database_file, query_fasta=input_assembly, out_dir=outdir)
     df = parse_blastn(blastn_file)
     df = process_blastn_df(df, locus_name)
     return df
@@ -154,45 +154,61 @@ def get_sequence_type(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def process_blastn_df(df: pd.DataFrame, locus_name: str):
+    """
+`   Sorts and filters the DataFrame according to pident and a newly calculated lratio, evaluates top hits, then
+    returns a DataFrame with only the top hit along with a 'hit_type' classification.
+    :param df: DataFrame containing parsed *.BLASTn results
+    :param locus_name: Name of the locus represented in the *.BLASTn file
+    :return: df containing only the top hit from the parsed *.BLASTn
+    """
     # Filter by length to slen ratio
     df['lratio'] = df['length'] / df['slen']
     df['locus'] = locus_name
-    df = df.query("lratio >= 0.92 & pident >= 92")  # Filter out anything below 92% lratio and < 92 pident
-    df = df.sort_values(by=['pident'], ascending=False)
+    df = df.query("lratio >= 0.98 & pident >= 98")  # Filter out anything below 98% lratio and < 98 pident
+
+    # Sort values so the best hits are at the top
+    df = df.sort_values(["pident", "lratio"], ascending=False)
     df = df.reset_index(drop=True)
 
     hit_type = "NA"
     if len(df) == 1:
-        if df['pident'][0] == 100:  # 100% hit
-            hit_type = "PERFECT_MATCH"
-            logging.debug(f"PERFECT MATCH\t\tALLELE:{df['sseqid'][0]}\t\tPIDENT:{df['pident'][0]}")
+        if df.pident[0] == 100.0 and df.lratio[0] == 1.0:  # 100% hit
+            hit_type = "PERFECT_SINGLE_HIT"
+            logging.debug(f"{hit_type}\t\tALLELE:{df.sseqid[0]}\t\tPIDENT:{df.pident[0]}")
         else:  # high lratio and pident hit, but not in the cgMLST database
             hit_type = "NEW_ALLELE"
-            logging.debug(f"NEW ALLELE\t\t\tCLOSEST ALLELE:{df['sseqid'][0]}\t\tPIDENT:{df['pident'][0]}")
+            logging.debug(f"{hit_type}\t\t\tCLOSEST ALLELE:{df.sseqid[0]}\t\tPIDENT:{df.pident[0]}")
     elif len(df) > 1:
-        if df.pident[0] == 100 and df.pident[1] == 100:  # weird duplicate 100% hit
+        if df.pident[0] == 100.0 and df.pident[1] == 100.0 and df.lratio[0] == 1.0 and df.lratio[1] == 1.0:
             hit_type = "PERFECT_DUPLICATE"
-            logging.debug(f"PERFECT DUPLICATE\t\t\tALLELE:{df['sseqid'][0]}\t\tALLELE:{df['sseqid'][1]}")
+            logging.debug(f"{hit_type}\t\t\tALLELE:{df.sseqid[0]}\t\tALLELE:{df.sseqid[1]}")
             df = df.head(1)
-        elif df.pident[0] == 100 and df.pident[1] != 100:  # perfect hit + close hit
-            hit_type = "LIKELY_PARALOG"
-            logging.debug(f"LIKELY PARALOG\t\tPERFECT ALLELE:{df['sseqid'][0]}\t\tCLOSE ALLELE:{df['sseqid'][1]}")
+        # TODO: Think this is mistakenly being called too often as a result of blastn word_size. Debug.
+        elif df.pident[0] == 100.0 and df.pident[1] != 100.0 and df.lratio[0] == 1.0:  # perfect hit + close hit
+            hit_type = "PERFECT_HIT_WITH_PARALOG"
+            logging.debug(
+                f"{hit_type}\t\tPERFECT_HIT:{df.sseqid[0]}\t\t"
+                f"CLOSEST_ALLELE:{df.sseqid[1]}({df.pident[1]},{df.lratio[1]})")
             df = df.head(1)
     elif len(df) == 0:  # no close hit
         hit_type = "NO_MATCH"
         data = []
         data.insert(0, {"qseqid": "NA", "sseqid": "NA", "slen": "NA",
                         "length": "NA", "qstart": "NA", "qend": "NA",
-                        "pident": "NA", "score": "NA", "locus": locus_name})
+                        "pident": "NA", "score": "NA", "locus": locus_name,
+                        "sstrand": "NA", "qseq": "NA", "lratio": "NA"})
         df = pd.concat([pd.DataFrame(data), df], ignore_index=True, sort=False)
         df = df.head(1)
-        logging.debug(f"NO MATCHES WITH LRATIO > 0.92 FOR {locus_name}")
-
+        logging.debug(f"{hit_type} FOR {locus_name}")
     df["hit_type"] = hit_type
     return df
 
 
 def call_makeblastdb(db_file: Path):
+    """
+    Makes a system call to makeblastdb on a given database file. Can handle *.gz, *.fasta, or no suffix.
+    :param db_file: Path to database file
+    """
     db_name = db_file.with_suffix(".blastDB")
     if db_file.suffix == ".gz":
         cmd = f"gunzip -c {db_file} | makeblastdb -in - -parse_seqids -dbtype nucl -out {db_name} -title {db_name}"
@@ -209,46 +225,76 @@ def call_makeblastdb(db_file: Path):
 
 
 def makeblastdb_database(database: Path, loci_suffix: str = "*.gz"):
+    """
+    Calls makeblastdb on every *.gz file in a given directory. Intended to function with the files retrieved via the
+    EnterobasePull script (https://github.com/bfssi-forest-dussault/EnterobasePull).
+    :param database: Path to database retrieved with EnterobasePull
+    :param loci_suffix: Suffix of files to run makeblastdb on
+    """
     db_files = list(database.glob(loci_suffix))
     for f in db_files:
         call_makeblastdb(f)
 
 
-def call_blastn(database_file: Path, query_fasta: Path, outdir: Path) -> tuple:
+def call_blastn(database_file: Path, query_fasta: Path, out_dir: Path) -> (Path, str):
+    """
+    Calls blastn against a query *.fasta file using the provided Enterobase DB target, dumps output into out_dir
+    :param database_file: Formatted (makeblastdb) BLAST database file
+    :param query_fasta: Sequence to query against database file
+    :param out_dir: Path to directory to store output
+    :return: BLASTn output (Path) and the base name of the target being searched (str)
+    """
     locus_name = database_file.with_suffix('').name
     reference_name = query_fasta.with_suffix('').name
-    outfile = outdir / Path(reference_name + "." + locus_name + ".BLASTn")
-    cmd = f"blastn -query {query_fasta} -db {database_file} -out {outfile} -max_target_seqs 5 " \
-          f"-outfmt '6 qseqid sseqid slen length qstart qend pident score sstrand qseq' -word_size 10 -perc_identity 90"
+    out_file = out_dir / Path(reference_name + "." + locus_name + ".BLASTn")
+    cmd = f"blastn -query {query_fasta} -db {database_file} -out {out_file} -max_target_seqs 5 " \
+          f"-outfmt '6 qseqid sseqid slen length qstart qend pident score sstrand qseq' -word_size 10 -perc_identity 95"
     run_subprocess(cmd)
-    return outfile, locus_name
+    return out_file, locus_name
 
 
-def combine_dataframes(dfs: list) -> pd.DataFrame:
+def combine_dataframes(dfs: [pd.DataFrame]) -> pd.DataFrame:
+    """
+    Receives a list of DataFrames and concatenates them. They must all have the same header.
+    :param dfs: List of DataFrames
+    :return: Single concatenated DataFrame
+    """
     df = pd.concat(dfs, sort=False)
     return df
 
 
-def parse_blastn(blastn_file: Path):
+def parse_blastn(blastn_file: Path) -> pd.DataFrame:
+    """
+    Parses *.BLASTn file generated by call_blastn(), then returns the df
+    :param blastn_file: file path to *.BLASTn file
+    :return: DataFrame contents of *.BLASTn file
+    """
     headers = ["qseqid", "sseqid", "slen", "length", "qstart", "qend", "pident", "score", "sstrand", "qseq"]
     df = pd.read_csv(blastn_file, delimiter="\t", names=headers)
-    df['lratio'] = df['length'] / df['slen']
-    df = df.sort_values(["pident", "lratio"], ascending=False)
-    df = df.head(1)  # Only take the top hit
     return df
 
 
 @jit()
-def get_reverse_complement(sequence: str):
+def get_reverse_complement(sequence: str) -> str:
+    """
+    Unsophisticated function to return the reverse complement of a DNA string
+    :param sequence: target sequence to complement
+    :return: complemented sequence
+    """
     complement_dict = {'A': 'T',
                        'C': 'G',
                        'G': 'C',
                        'T': 'A'}
+    sequence = sequence.upper()
     reverse_complement = "".join(complement_dict.get(base, base) for base in reversed(sequence))
     return reverse_complement
 
 
 def run_subprocess(cmd: str):
+    """
+    Makes an external system call and runs it via shell
+    :param cmd: string containing system command
+    """
     p = Popen(cmd, shell=True)
     p.wait()
 
