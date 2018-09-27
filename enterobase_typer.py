@@ -105,6 +105,12 @@ def main(input_assembly: Path, database: Path, out_dir: Path, create_db: bool, v
     df = combine_dataframes(df_list)
     df = df.sort_values(by=['sseqid'])
 
+    # Get reverse complement of minus strands
+    df['qseq_strand_aware'] = df.apply(get_reverse_complement_row, axis=1)
+
+    # Drop extraneous columns
+    df = df.drop(['qseq', 'sstrand'], axis=1)
+
     # Prepare detailed report
     output_detailed_report = out_dir / "BLASTn_Detailed_Report.tsv"
     df.to_csv(output_detailed_report, sep="\t", index=None)
@@ -246,7 +252,7 @@ def call_blastn(database_file: Path, query_fasta: Path, out_dir: Path) -> (Path,
     out_file = out_dir / Path(reference_name + "." + locus_name + ".BLASTn")
     cmd = f"blastn -query {query_fasta} -db {database_file} -out {out_file} " \
           f"-outfmt '6 qseqid sseqid slen length qstart qend pident score sstrand qseq' -word_size 10 " \
-          f"-perc_identity 97 -dust yes"
+          f"-perc_identity 97"
     run_subprocess(cmd)
     return out_file, locus_name
 
@@ -272,20 +278,22 @@ def parse_blastn(blastn_file: Path) -> pd.DataFrame:
     return df
 
 
-@jit()
-def get_reverse_complement(sequence: str) -> str:
+def get_reverse_complement_row(row):
     """
-    Unsophisticated function to return the reverse complement of a DNA string
-    :param sequence: target sequence to complement
-    :return: complemented sequence
+    Takes DataFrame row and returns the reverse complement of the sequence if the strand is 'minus'
+    :param row:
+    :return:
     """
     complement_dict = {'A': 'T',
                        'C': 'G',
                        'G': 'C',
                        'T': 'A'}
-    sequence = sequence.upper()
-    reverse_complement = "".join(complement_dict.get(base, base) for base in reversed(sequence))
-    return reverse_complement
+    sequence = row['qseq'].upper()
+    if row['sstrand'] == 'minus':
+        reverse_complement = "".join(complement_dict.get(base, base) for base in reversed(sequence))
+        return reverse_complement
+    else:
+        return sequence
 
 
 def run_subprocess(cmd: str):
