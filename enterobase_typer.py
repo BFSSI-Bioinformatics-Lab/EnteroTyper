@@ -164,7 +164,7 @@ def process_blastn_df(df: pd.DataFrame, locus_name: str):
     # Filter by length to slen ratio
     df['lratio'] = df['length'] / df['slen']
     df['locus'] = locus_name
-    df = df.query("lratio >= 0.98 & pident >= 98")  # Filter out anything below 98% lratio and < 98 pident
+    df = df.query("lratio >= 0.99 & pident >= 99.9 & lratio <=1.00")  # Filter DataFrame
 
     # Sort values so the best hits are at the top
     df = df.sort_values(["pident", "lratio"], ascending=False)
@@ -182,14 +182,12 @@ def process_blastn_df(df: pd.DataFrame, locus_name: str):
         if df.pident[0] == 100.0 and df.pident[1] == 100.0 and df.lratio[0] == 1.0 and df.lratio[1] == 1.0:
             hit_type = "PERFECT_DUPLICATE"
             logging.debug(f"{hit_type}\t\t\tALLELE:{df.sseqid[0]}\t\tALLELE:{df.sseqid[1]}")
-            df = df.head(1)
         # TODO: Think this is mistakenly being called too often as a result of blastn word_size. Debug.
         elif df.pident[0] == 100.0 and df.pident[1] != 100.0 and df.lratio[0] == 1.0:  # perfect hit + close hit
             hit_type = "PERFECT_HIT_WITH_PARALOG"
             logging.debug(
                 f"{hit_type}\t\tPERFECT_HIT:{df.sseqid[0]}\t\t"
                 f"CLOSEST_ALLELE:{df.sseqid[1]}({df.pident[1]},{df.lratio[1]})")
-            df = df.head(1)
     elif len(df) == 0:  # no close hit
         hit_type = "NO_MATCH"
         data = []
@@ -198,10 +196,9 @@ def process_blastn_df(df: pd.DataFrame, locus_name: str):
                         "pident": "NA", "score": "NA", "locus": locus_name,
                         "sstrand": "NA", "qseq": "NA", "lratio": "NA"})
         df = pd.concat([pd.DataFrame(data), df], ignore_index=True, sort=False)
-        df = df.head(1)
         logging.debug(f"{hit_type} FOR {locus_name}")
     df["hit_type"] = hit_type
-    return df
+    return df.head(1)
 
 
 def call_makeblastdb(db_file: Path):
@@ -247,8 +244,9 @@ def call_blastn(database_file: Path, query_fasta: Path, out_dir: Path) -> (Path,
     locus_name = database_file.with_suffix('').name
     reference_name = query_fasta.with_suffix('').name
     out_file = out_dir / Path(reference_name + "." + locus_name + ".BLASTn")
-    cmd = f"blastn -query {query_fasta} -db {database_file} -out {out_file} -max_target_seqs 5 " \
-          f"-outfmt '6 qseqid sseqid slen length qstart qend pident score sstrand qseq' -word_size 10 -perc_identity 95"
+    cmd = f"blastn -query {query_fasta} -db {database_file} -out {out_file} " \
+          f"-outfmt '6 qseqid sseqid slen length qstart qend pident score sstrand qseq' -word_size 10 " \
+          f"-perc_identity 97 -dust yes"
     run_subprocess(cmd)
     return out_file, locus_name
 
