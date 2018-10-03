@@ -6,6 +6,7 @@ __author__ = "Forest Dussault"
 __email__ = "forest.dussault@canada.ca"
 
 import os
+import gzip
 import click
 import logging
 import multiprocessing
@@ -109,7 +110,7 @@ def main(input_assembly: Path, database: Path, out_dir: Path, create_db: bool, v
     df['qseq_strand_aware'] = df.apply(get_reverse_complement_row, axis=1)
 
     # Drop extraneous columns
-    df = df.drop(['qseq', 'sstrand'], axis=1)
+    df = df.drop(['qseq', 'sstrand', 'score'], axis=1)
 
     # Prepare detailed report
     output_detailed_report = out_dir / "BLASTn_Detailed_Report.tsv"
@@ -167,34 +168,34 @@ def process_blastn_df(df: pd.DataFrame, locus_name: str):
     :param locus_name: Name of the locus represented in the *.BLASTn file
     :return: df containing only the top hit from the parsed *.BLASTn
     """
+    logging.debug(f"Checking {locus_name}...")
     # Filter by length to slen ratio
     df['lratio'] = df['length'] / df['slen']
     df['locus'] = locus_name
-    df = df.query("lratio >= 0.99 & pident >= 99.9 & lratio <=1.00")  # Filter DataFrame
+
+    # Filter junk from DataFrame
+    df = df.query("lratio >= 0.90 & pident >= 90.0 & lratio <=1.10")
 
     # Sort values so the best hits are at the top
     df = df.sort_values(["pident", "lratio"], ascending=False)
     df = df.reset_index(drop=True)
 
-    hit_type = "NA"
+    hit_type = None
     if len(df) == 1:
-        if df.pident[0] == 100.0 and df.lratio[0] == 1.0:  # 100% hit
-            hit_type = "PERFECT_SINGLE_HIT"
-            logging.debug(f"{hit_type}\t\tALLELE:{df.sseqid[0]}\t\tPIDENT:{df.pident[0]}")
-        else:  # high lratio and pident hit, but not in the cgMLST database
-            hit_type = "NEW_ALLELE"
-            logging.debug(f"{hit_type}\t\t\tCLOSEST ALLELE:{df.sseqid[0]}\t\tPIDENT:{df.pident[0]}")
-    elif len(df) > 1:
-        if df.pident[0] == 100.0 and df.pident[1] == 100.0 and df.lratio[0] == 1.0 and df.lratio[1] == 1.0:
+        # CASE 1: PERFECT SINGLE HIT
+        if df.pident[0] == 100.0 and df.lratio[0] == 1.0:
+            hit_type = "PERFECT_HIT"
+    elif len(df) > 1 and df.pident[0] == 100.0 and df.lratio[0] == 1.0:
+        # CASE 2: PERFECT DUPLICATE - top two hits both have 100% pident and lratio
+        if df.pident[1] == 100.0 and df.lratio[1] == 1.0:
             hit_type = "PERFECT_DUPLICATE"
-            logging.debug(f"{hit_type}\t\t\tALLELE:{df.sseqid[0]}\t\tALLELE:{df.sseqid[1]}")
-        # TODO: Think this is mistakenly being called too often as a result of blastn word_size. Debug.
-        elif df.pident[0] == 100.0 and df.pident[1] != 100.0 and df.lratio[0] == 1.0:  # perfect hit + close hit
-            hit_type = "PERFECT_HIT_WITH_PARALOG"
-            logging.debug(
-                f"{hit_type}\t\tPERFECT_HIT:{df.sseqid[0]}\t\t"
-                f"CLOSEST_ALLELE:{df.sseqid[1]}({df.pident[1]},{df.lratio[1]})")
-    elif len(df) == 0:  # no close hit
+        # CASE 3: PERFECT HIT w/very close second hit
+        elif (0.99 <= df.lratio[1] <= 1.01) or df.pident[1] >= 0.99:
+            hit_type = "PERFECT_HIT_WITH_POTENTIAL_PARALOG"
+        # CASE 4: PERFECT HIT w/slightly less close second hit
+        else:
+            hit_type = "PERFECT_HIT"
+    elif len(df) == 0:  # no close hits
         hit_type = "NO_MATCH"
         data = []
         data.insert(0, {"qseqid": "NA", "sseqid": "NA", "slen": "NA",
@@ -202,7 +203,9 @@ def process_blastn_df(df: pd.DataFrame, locus_name: str):
                         "pident": "NA", "score": "NA", "locus": locus_name,
                         "sstrand": "NA", "qseq": "NA", "lratio": "NA"})
         df = pd.concat([pd.DataFrame(data), df], ignore_index=True, sort=False)
-        logging.debug(f"{hit_type} FOR {locus_name}")
+    else:
+        hit_type = "CLOSEST_HIT"
+
     df["hit_type"] = hit_type
     return df.head(1)
 
@@ -239,6 +242,14 @@ def makeblastdb_database(database: Path, loci_suffix: str = "*.gz"):
         call_makeblastdb(f)
 
 
+def get_allele_length(database_file: Path) -> int:
+    with gzip.open(database_file, "rt") as handle:
+        lines = [line.strip() for line in handle]
+        for line in lines:
+            if line[0] != ">":
+                return len(line)
+
+
 def call_blastn(database_file: Path, query_fasta: Path, out_dir: Path) -> (Path, str):
     """
     Calls blastn against a query *.fasta file using the provided Enterobase DB target, dumps output into out_dir
@@ -247,12 +258,15 @@ def call_blastn(database_file: Path, query_fasta: Path, out_dir: Path) -> (Path,
     :param out_dir: Path to directory to store output
     :return: BLASTn output (Path) and the base name of the target being searched (str)
     """
+    # Dynamically set word_size
+    allele_length = get_allele_length(database_file=database_file.with_suffix(".gz"))
+    word_size = round(allele_length / 4)
+
     locus_name = database_file.with_suffix('').name
     reference_name = query_fasta.with_suffix('').name
     out_file = out_dir / Path(reference_name + "." + locus_name + ".BLASTn")
     cmd = f"blastn -query {query_fasta} -db {database_file} -out {out_file} " \
-          f"-outfmt '6 qseqid sseqid slen length qstart qend pident score sstrand qseq' -word_size 10 " \
-          f"-perc_identity 97"
+          f"-outfmt '6 qseqid sseqid slen length qstart qend pident score sstrand qseq' -word_size {word_size}"
     run_subprocess(cmd)
     return out_file, locus_name
 
