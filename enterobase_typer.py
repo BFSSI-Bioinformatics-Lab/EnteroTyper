@@ -8,6 +8,7 @@ __email__ = "forest.dussault@canada.ca"
 import os
 import gzip
 import click
+import shutil
 import logging
 import multiprocessing
 import pandas as pd
@@ -84,6 +85,10 @@ def main(input_assembly: Path, database: Path, out_dir: Path, create_db: bool, v
             level=logging.INFO,
             datefmt='%Y-%m-%d %H:%M:%S')
 
+    type_sample(input_assembly, database, out_dir, create_db)
+
+
+def type_sample(input_assembly: Path, database: Path, out_dir: Path, create_db: bool):
     # Output directory validation
     try:
         os.makedirs(str(out_dir), exist_ok=False)
@@ -112,6 +117,9 @@ def main(input_assembly: Path, database: Path, out_dir: Path, create_db: bool, v
     # Drop extraneous columns
     df = df.drop(['qseq', 'sstrand', 'score'], axis=1)
 
+    # Sort
+    df = df.sort_values(by=['locus'])
+
     # Prepare detailed report
     output_detailed_report = out_dir / "BLASTn_Detailed_Report.tsv"
     df.to_csv(output_detailed_report, sep="\t", index=None)
@@ -124,7 +132,15 @@ def main(input_assembly: Path, database: Path, out_dir: Path, create_db: bool, v
     cgmlst_df.to_csv(cgmlst_allele_report, sep="\t", index=None)
     cgmlst_df_transposed.to_csv(cgmlst_allele_report_transposed, sep="\t", header=False)
 
-    logging.info(f"Done!")
+    # TODO: Test this blastn move bit of code
+    # Move BLASTn files
+    blastn_folder = out_dir / 'blastn_output'
+    os.makedirs(str(blastn_folder), exist_ok=True)
+    blastn_files = list(blastn_folder.glob("*.BLASTn"))
+    for f in blastn_files:
+        shutil.move(str(f), str(blastn_folder / f.name))
+
+    logging.info(f"=============TYPING COMPLETE=============")
     logging.info(f"cgMLST Allele Report: {cgmlst_allele_report}")
     logging.info(f"Detailed Report: {output_detailed_report}")
 
