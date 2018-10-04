@@ -14,7 +14,7 @@ import multiprocessing
 import pandas as pd
 
 from numba import jit
-from subprocess import Popen
+from subprocess import Popen, PIPE
 from multiprocessing import Pool
 
 from pathlib import Path
