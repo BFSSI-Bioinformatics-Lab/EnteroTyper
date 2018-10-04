@@ -1,6 +1,8 @@
-# Enterobase Typer
+# EnterobaseTyper
 
-This is a script to type assemblies according to schemes retrieved from Enterobase.
+This is a set of scripts to type assemblies according to schemes retrieved from Enterobase.
+
+Scripts to compare samples according to typing results are forthcoming.
 
 Enterobase databases can be manually retrieved with [EnterobasePull](https://github.com/bfssi-forest-dussault/EnterobasePull).
 Database files retrieved from Enterobase can be automatically formatted via makeblastdb by the typer script.
