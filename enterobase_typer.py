@@ -326,13 +326,21 @@ def get_reverse_complement_row(row):
         return sequence
 
 
-def run_subprocess(cmd: str):
-    """
-    Makes an external system call and runs it via shell
-    :param cmd: string containing system command
-    """
-    p = Popen(cmd, shell=True)
-    p.wait()
+def run_subprocess(cmd: str, get_stdout=False):
+    if get_stdout:
+        p = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
+        out, err = p.communicate()
+        out = out.decode().strip()
+        err = err.decode().strip()
+        if out != "":
+            return out
+        elif err != "":
+            return err
+        else:
+            return ""
+    else:
+        p = Popen(cmd, shell=True)
+        p.wait()
 
 
 if __name__ == "__main__":
