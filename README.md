@@ -5,6 +5,8 @@ This is a script to type assemblies according to schemes retrieved from Enteroba
 Enterobase databases can be manually retrieved with [EnterobasePull](https://github.com/bfssi-forest-dussault/EnterobasePull).
 Database files retrieved from Enterobase can be automatically formatted via makeblastdb by the typer script.
 
+Salmonella assemblies are typically conducted with the [ProkaryoteAssembly](https://github.com/bfssi-forest-dussault/ProkaryoteAssembly) pipeline at BFSSI.
+
 ### Usage
 ```bash
 Usage: enterobase_typer.py [OPTIONS]
