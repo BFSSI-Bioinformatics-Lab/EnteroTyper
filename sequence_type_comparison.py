@@ -1,6 +1,8 @@
 import click
+import logging
 import pandas as pd
 from pathlib import Path
+from enterobase_typer import create_outdir
 
 
 def convert_to_path(ctx, param, value):
@@ -17,10 +19,36 @@ def convert_to_path(ctx, param, value):
               default=None,
               help='Root directory to store all output files',
               callback=convert_to_path)
+@click.option('-v', '--verbose',
+              is_flag=True,
+              default=False,  # Set this to false eventually
+              help='Set this flag to enable more verbose logging.')
 @click.argument('targets', nargs=-1, type=click.Path(exists=True))
-def main(targets, out_dir):
+def main(targets, out_dir, verbose):
+    if verbose:
+        logging.basicConfig(
+            format='\033[92m \033[1m %(asctime)s \033[0m %(message)s ',
+            level=logging.DEBUG,
+            datefmt='%Y-%m-%d %H:%M:%S')
+    else:
+        logging.basicConfig(
+            format='\033[92m \033[1m %(asctime)s \033[0m %(message)s ',
+            level=logging.INFO,
+            datefmt='%Y-%m-%d %H:%M:%S')
+    logging.info("Comparing provided sequences")
+    call_sequence_comparison(targets=targets, out_dir=out_dir)
+    logging.info("Script complete")
+
+
+def call_sequence_comparison(targets: list, out_dir: Path):
+    create_outdir(out_dir=out_dir)
+
+    # Populate target_dict (key=sample name, value=path to report)
     targets = [Path(target) for target in targets]
-    target_dict = {target.with_suffix("").name.replace("_cgMLST_Allele_Report_transposed", ""): target for target in targets}
+    target_dict = {}
+    for target in targets:
+        target_name = target.with_suffix("").name.replace("_cgMLST_Allele_Report_transposed", "")
+        target_dict[target_name] = target
 
     # Make pairwise comparisons
     pairwise_dict = {}
@@ -41,7 +69,6 @@ def main(targets, out_dir):
         pairwise_dict[target_1] = inner_dict
 
     for key, val in pairwise_dict.items():
-        print(key)
         df = pd.DataFrame.from_dict(val)
         out_name = out_dir / (key + "_pairwise_comparisons.xlsx")
         if out_name.exists():
@@ -74,9 +101,9 @@ def compare_reports(report_1: Path, report_2: Path) -> dict:
     difference_dict = compare_allele_dicts(dict_1, dict_2)
     mismatches = count_mismatches(difference_dict)
 
-    print(f"NUM. MISMATCHES: {mismatches}/{len(difference_dict)}")
+    logging.debug(f"NUM. MISMATCHES: {mismatches}/{len(difference_dict)}")
     mismatch_pct = (mismatches / len(difference_dict)) * 100
-    print(f"PERCENT MISMATCH: {mismatch_pct}%")
+    logging.debug(f"PERCENT MISMATCH: {mismatch_pct}%")
     return difference_dict
 
 
@@ -100,23 +127,22 @@ def compare_keys(dict_1: dict, dict_2: dict):
 
     if len(keys_1) != len(keys_2):
         error_state = True
-        print(f"WARNING: Length of dictionaries are not the same. {len(keys_1)} vs. {len(keys_2)}")
+        logging.warning(f"WARNING: Length of dictionaries are not the same. {len(keys_1)} vs. {len(keys_2)}")
 
     for key in keys_1:
         if key not in keys_2:
             error_state = True
-            print(f"WARNING: {key} not in both dictionaries")
+            logging.warning(f"WARNING: {key} not in both dictionaries")
 
     for key in keys_2:
         if key not in keys_1:
             error_state = True
-            print(f"WARNING: {key} not in both dictionaries")
+            logging.warning(f"WARNING: {key} not in both dictionaries")
 
     if error_state:
-        print(f"FAIL: Provided dictionaries are not equivalent. Beware.")
+        logging.error(f"FAIL: Provided dictionaries are not equivalent. Beware.")
     else:
         pass
-        # print(f"SUCCESS: Dictionaries are equivalent")
 
 
 def compare_allele_dicts(dict_1: dict, dict_2: dict):
