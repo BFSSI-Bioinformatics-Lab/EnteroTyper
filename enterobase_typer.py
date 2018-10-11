@@ -133,7 +133,6 @@ def move_blastn_files(out_dir: Path):
     """
     Moves all of the BLASTn output to a new folder 'blastn_output'
     """
-    # TODO: Test this blastn move bit of code
     blastn_folder = out_dir / 'blastn_output'
     os.makedirs(str(blastn_folder), exist_ok=True)
     blastn_files = list(out_dir.glob("*.BLASTn"))
