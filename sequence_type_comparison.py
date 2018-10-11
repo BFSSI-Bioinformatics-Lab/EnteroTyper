@@ -1,5 +1,71 @@
-from pathlib import Path
+import click
 import pandas as pd
+from pathlib import Path
+
+
+def convert_to_path(ctx, param, value):
+    if not value or ctx.resilient_parsing:
+        return
+    value = Path(value)
+    return value
+
+
+@click.command(help="Takes a list of target *.cgMLST_Allele_Report_transposed.tsv files, followed by several options.")
+@click.option('-o', '--out_dir',
+              type=click.Path(exists=False),
+              required=True,
+              default=None,
+              help='Root directory to store all output files',
+              callback=convert_to_path)
+@click.argument('targets', nargs=-1, type=click.Path(exists=True))
+def main(targets, out_dir):
+    targets = [Path(target) for target in targets]
+    target_dict = {target.with_suffix("").name.replace("_cgMLST_Allele_Report_transposed", ""): target for target in targets}
+
+    # Make pairwise comparisons
+    pairwise_dict = {}
+    mismatch_dict = {}
+    for target_1, target_1_report in target_dict.items():
+        inner_dict = {}
+        inner_mismatch_dict = {}
+        for target_2, target_2_report in target_dict.items():
+            # Difference dict
+            difference_dict = compare_reports(target_1_report, target_2_report)
+            inner_dict[target_2] = difference_dict
+
+            # Total mismatches
+            mismatches = count_mismatches(difference_dict)
+            inner_mismatch_dict[target_2] = mismatches
+
+        mismatch_dict[target_1] = inner_mismatch_dict
+        pairwise_dict[target_1] = inner_dict
+
+    for key, val in pairwise_dict.items():
+        print(key)
+        df = pd.DataFrame.from_dict(val)
+        out_name = out_dir / (key + "_pairwise_comparisons.xlsx")
+        if out_name.exists():
+            continue
+        writer = pd.ExcelWriter(str(out_name), engine='xlsxwriter')
+        df.to_excel(writer, sheet_name=key)
+        worksheet = writer.sheets[key]
+        worksheet.conditional_format('B2:AZ4000', {'type': '2_color_scale'})
+        writer.save()
+
+    master_df = []
+    out_name = out_dir / "all_samples_comparison.xlsx"
+    for key, val in mismatch_dict.items():
+        df = pd.DataFrame.from_dict(val, orient='index').transpose()
+        df['id'] = key
+        df = df.set_index('id')
+        master_df.append(df)
+    df = pd.concat(master_df)
+
+    writer = pd.ExcelWriter(str(out_name), engine='xlsxwriter')
+    df.to_excel(writer, sheet_name='all_samples_comparison')
+    worksheet = writer.sheets['all_samples_comparison']
+    worksheet.conditional_format('B2:AZ200', {'type': '3_color_scale'})
+    writer.save()
 
 
 def compare_reports(report_1: Path, report_2: Path) -> dict:
@@ -7,12 +73,10 @@ def compare_reports(report_1: Path, report_2: Path) -> dict:
     dict_2 = read_allele_report(report_2)
     difference_dict = compare_allele_dicts(dict_1, dict_2)
     mismatches = count_mismatches(difference_dict)
-    # print("DIFFERENCE DICTIONARY:")
-    # for key, val in difference_dict.items():
-    #     print(f"{key}: {val}")
+
     print(f"NUM. MISMATCHES: {mismatches}/{len(difference_dict)}")
-    mismatch_pct = (mismatches/len(difference_dict)) * 100
-    # print(f"PERCENT MISMATCH: {mismatch_pct}%")
+    mismatch_pct = (mismatches / len(difference_dict)) * 100
+    print(f"PERCENT MISMATCH: {mismatch_pct}%")
     return difference_dict
 
 
@@ -78,3 +142,7 @@ def count_mismatches(difference_dict: dict) -> int:
     for key, val in difference_dict.items():
         mismatch_counter += val
     return mismatch_counter
+
+
+if __name__ == "__main__":
+    main()
