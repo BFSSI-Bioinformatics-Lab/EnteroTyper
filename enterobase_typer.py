@@ -89,26 +89,110 @@ def main(input_assembly: Path, database: Path, out_dir: Path, create_db: bool, v
 
 
 def type_sample(input_assembly: Path, database: Path, out_dir: Path, create_db: bool):
-    # Output directory validation
-    try:
-        os.makedirs(str(out_dir), exist_ok=False)
-        logging.debug(f"Created directory {out_dir}")
-    except FileExistsError:
-        logging.error("ERROR: Output directory already exists.")
-        quit()
+    # Output directory creation/validation
+    create_outdir(out_dir=out_dir)
 
     logging.debug(f"input_assembly: {input_assembly}")
     logging.debug(f"database: {database}")
     logging.debug(f"outdir: {out_dir}")
     logging.debug(f"create_db: {create_db}")
 
+    # Call makeblastdb on each database file if create_db=True
     if create_db:
-        logging.debug(f"Calling makeblastdb on database at {database}")
-        makeblastdb_database(database=database)
-    database_files = list(database.glob("*.gz"))
+        database_files = makeblastdb_database(database=database)
+    else:
+        database_files = get_database_files(database=database)
 
-    df_list = prepare_df_list_multiprocess(database_files, input_assembly, out_dir)
+    # Query input_assembly against each loci in the cgMLST database
+    df = multiprocess_blastn_call(database_files, input_assembly, out_dir)
+
+    # Prepare detailed report
+    detailed_report = generate_detailed_report(df=df, out_dir=out_dir)
+
+    # Prepare cgMLST report
+    cgmlst_allele_report = generate_cgmlst_report(df=df, out_dir=out_dir)
+
+    # Move BLASTn files
+    move_blastn_files(out_dir=out_dir)
+
+    logging.info(f"=============TYPING COMPLETE=============")
+    logging.info(f"cgMLST Allele Report: {cgmlst_allele_report}")
+    logging.info(f"Detailed Report: {detailed_report}")
+
+
+class EmptyDatabase(Exception):
+    pass
+
+
+def move_blastn_files(out_dir: Path):
+    """
+    Moves all of the BLASTn output to a new folder 'blastn_output'
+    """
+    # TODO: Test this blastn move bit of code
+    blastn_folder = out_dir / 'blastn_output'
+    os.makedirs(str(blastn_folder), exist_ok=True)
+    blastn_files = list(blastn_folder.glob("*.BLASTn"))
+    for f in blastn_files:
+        shutil.move(str(f), str(blastn_folder / f.name))
+
+
+def generate_cgmlst_report(df: pd.DataFrame, out_dir: Path):
+    """
+    Generates the cgMLST report along with a transposed version within the out_dir folder
+    """
+    cgmlst_allele_report = out_dir / "cgMLST_Allele_Report.tsv"
+    cgmlst_allele_report_transposed = out_dir / "cgMLST_Allele_Report_transposed.tsv"
+    cgmlst_df = get_sequence_type(df)
+    cgmlst_df_transposed = cgmlst_df.transpose()
+    cgmlst_df.to_csv(cgmlst_allele_report, sep="\t", index=None)
+    cgmlst_df_transposed.to_csv(cgmlst_allele_report_transposed, sep="\t", header=False)
+    logging.debug(f"cgMLST report available at {cgmlst_allele_report}")
+    return cgmlst_allele_report
+
+
+def generate_detailed_report(df: pd.DataFrame, out_dir: Path):
+    """
+    Generates the detailed report within the out_dir folder
+    """
+    output_detailed_report = out_dir / "BLASTn_Detailed_Report.tsv"
+    df.to_csv(output_detailed_report, sep="\t", index=None)
+    logging.debug(f"Detailed report available at {output_detailed_report}")
+    return output_detailed_report
+
+
+def get_database_files(database: Path, loci_suffix: str = "*.gz"):
+    """
+    Grabs database files within a provided directory and returns a list of everything present.
+    Matches against a given suffix (defaults to *.gz, the expected database file extension)
+    """
+    database_files = list(database.glob(loci_suffix))
+    if len(database_files) > 0:
+        return database_files
+    else:
+        raise EmptyDatabase(f"Could not find database files at {database}. "
+                            f"Try re-running the script with the --create_db flag.")
+
+
+def create_outdir(out_dir: Path) -> Path:
+    """
+    Creates output directory, quits/raises error if it already exists
+    """
+    os.makedirs(str(out_dir), exist_ok=False)
+    logging.debug(f"Created directory {out_dir}")
+    return out_dir
+
+
+def multiprocess_blastn_call(database_files: list, input_assembly: Path, outdir: Path) -> [pd.DataFrame]:
+    """
+    Calls blastn on every database file against the input_assembly, reads top hit of results into a dataframe per loci,
+    then returns a single dataframe of the combined results
+    """
+    df_params = [(database_file, input_assembly, outdir) for database_file in database_files]
+    with Pool(multiprocessing.cpu_count() - 1) as p:
+        df_list = p.starmap(closest_allele_df, df_params)
     df = combine_dataframes(df_list)
+
+    # Sort values
     df = df.sort_values(by=['sseqid'])
 
     # Get reverse complement of minus strands
@@ -117,42 +201,16 @@ def type_sample(input_assembly: Path, database: Path, out_dir: Path, create_db: 
     # Drop extraneous columns
     df = df.drop(['qseq', 'sstrand', 'score'], axis=1)
 
-    # Sort
+    # Sort again
     df = df.sort_values(by=['locus'])
 
-    # Prepare detailed report
-    output_detailed_report = out_dir / "BLASTn_Detailed_Report.tsv"
-    df.to_csv(output_detailed_report, sep="\t", index=None)
-
-    # Prepare cgMLST report
-    cgmlst_allele_report = out_dir / "cgMLST_Allele_Report.tsv"
-    cgmlst_allele_report_transposed = out_dir / "cgMLST_Allele_Report_transposed.tsv"
-    cgmlst_df = get_sequence_type(df)
-    cgmlst_df_transposed = cgmlst_df.transpose()
-    cgmlst_df.to_csv(cgmlst_allele_report, sep="\t", index=None)
-    cgmlst_df_transposed.to_csv(cgmlst_allele_report_transposed, sep="\t", header=False)
-
-    # TODO: Test this blastn move bit of code
-    # Move BLASTn files
-    blastn_folder = out_dir / 'blastn_output'
-    os.makedirs(str(blastn_folder), exist_ok=True)
-    blastn_files = list(blastn_folder.glob("*.BLASTn"))
-    for f in blastn_files:
-        shutil.move(str(f), str(blastn_folder / f.name))
-
-    logging.info(f"=============TYPING COMPLETE=============")
-    logging.info(f"cgMLST Allele Report: {cgmlst_allele_report}")
-    logging.info(f"Detailed Report: {output_detailed_report}")
+    return df
 
 
-def prepare_df_list_multiprocess(database_files: list, input_assembly: Path, outdir: Path):
-    df_params = [(database_file, input_assembly, outdir) for database_file in database_files]
-    with Pool(multiprocessing.cpu_count() - 1) as p:
-        df_list = p.starmap(closest_allele_df, df_params)
-    return df_list
-
-
-def closest_allele_df(database_file, input_assembly, outdir):
+def closest_allele_df(database_file: Path, input_assembly: Path, outdir: Path) -> pd.DataFrame:
+    """
+    Queries the input_assembly against a given database file, returns the top hit as a dataframe
+    """
     database_file = database_file.with_suffix(".blastDB")
     blastn_file, locus_name = call_blastn(database_file=database_file, query_fasta=input_assembly, out_dir=outdir)
     df = parse_blastn(blastn_file)
@@ -176,7 +234,7 @@ def get_sequence_type(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def process_blastn_df(df: pd.DataFrame, locus_name: str):
+def process_blastn_df(df: pd.DataFrame, locus_name: str) -> pd.DataFrame:
     """
 `   Sorts and filters the DataFrame according to pident and a newly calculated lratio, evaluates top hits, then
     returns a DataFrame with only the top hit along with a 'hit_type' classification.
@@ -246,16 +304,18 @@ def call_makeblastdb(db_file: Path):
         logging.debug("Invalid file format provided to call_makeblastdb()")
 
 
-def makeblastdb_database(database: Path, loci_suffix: str = "*.gz"):
+def makeblastdb_database(database: Path, loci_suffix: str = "*.gz") -> list:
     """
     Calls makeblastdb on every *.gz file in a given directory. Intended to function with the files retrieved via the
     EnterobasePull script (https://github.com/bfssi-forest-dussault/EnterobasePull).
     :param database: Path to database retrieved with EnterobasePull
     :param loci_suffix: Suffix of files to run makeblastdb on
     """
+    logging.debug(f"Calling makeblastdb on database at {database}")
     db_files = list(database.glob(loci_suffix))
     for f in db_files:
         call_makeblastdb(f)
+    return db_files
 
 
 def get_allele_length(database_file: Path) -> int:
@@ -308,7 +368,7 @@ def parse_blastn(blastn_file: Path) -> pd.DataFrame:
     return df
 
 
-def get_reverse_complement_row(row):
+def get_reverse_complement_row(row) -> str:
     """
     Takes DataFrame row and returns the reverse complement of the sequence if the strand is 'minus'
     :param row:
@@ -326,7 +386,7 @@ def get_reverse_complement_row(row):
         return sequence
 
 
-def run_subprocess(cmd: str, get_stdout=False):
+def run_subprocess(cmd: str, get_stdout: bool = False) -> str:
     if get_stdout:
         p = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
         out, err = p.communicate()
