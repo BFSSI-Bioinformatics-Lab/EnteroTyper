@@ -85,10 +85,16 @@ def main(input_assembly: Path, database: Path, out_dir: Path, create_db: bool, v
             level=logging.INFO,
             datefmt='%Y-%m-%d %H:%M:%S')
 
-    type_sample(input_assembly, database, out_dir, create_db)
+    cli_call = True
+    type_sample(input_assembly=input_assembly, database=database,
+                out_dir=out_dir, create_db=create_db, cli_call=cli_call)
 
 
-def type_sample(input_assembly: Path, database: Path, out_dir: Path, create_db: bool):
+def type_sample(input_assembly: Path, database: Path, out_dir: Path, create_db: bool, cli_call: bool = False):
+    """
+    Function wrapping all of the functionality of the enterobase_typer script. Can be called directly.
+    """
+
     # Output directory creation/validation
     create_outdir(out_dir=out_dir)
 
@@ -99,18 +105,21 @@ def type_sample(input_assembly: Path, database: Path, out_dir: Path, create_db: 
 
     # Call makeblastdb on each database file if create_db=True
     if create_db:
-        database_files = makeblastdb_database(database=database)
+        database_files = makeblastdb_database(database=database, cli_call=cli_call)
     else:
         database_files = get_database_files(database=database)
 
     # Query input_assembly against each loci in the cgMLST database
     df = multiprocess_blastn_call(database_files, input_assembly, out_dir)
 
+    # Grab sample name from input_assembly
+    sample_name = input_assembly.with_suffix("").name.replace(".pilon", "")
+
     # Prepare detailed report
-    detailed_report = generate_detailed_report(df=df, out_dir=out_dir)
+    detailed_report = generate_detailed_report(df=df, out_dir=out_dir, sample_name=sample_name)
 
     # Prepare cgMLST report
-    cgmlst_allele_report = generate_cgmlst_report(df=df, out_dir=out_dir)
+    cgmlst_allele_report = generate_cgmlst_report(df=df, out_dir=out_dir, sample_name=sample_name)
 
     # Move BLASTn files
     move_blastn_files(out_dir=out_dir)
@@ -120,10 +129,6 @@ def type_sample(input_assembly: Path, database: Path, out_dir: Path, create_db: 
     logging.info(f"Detailed Report: {detailed_report}")
 
 
-class EmptyDatabase(Exception):
-    pass
-
-
 def move_blastn_files(out_dir: Path):
     """
     Moves all of the BLASTn output to a new folder 'blastn_output'
@@ -131,32 +136,30 @@ def move_blastn_files(out_dir: Path):
     # TODO: Test this blastn move bit of code
     blastn_folder = out_dir / 'blastn_output'
     os.makedirs(str(blastn_folder), exist_ok=True)
-    blastn_files = list(blastn_folder.glob("*.BLASTn"))
+    blastn_files = list(out_dir.glob("*.BLASTn"))
     for f in blastn_files:
         shutil.move(str(f), str(blastn_folder / f.name))
 
 
-def generate_cgmlst_report(df: pd.DataFrame, out_dir: Path):
+def generate_cgmlst_report(df: pd.DataFrame, out_dir: Path, sample_name: str) -> Path:
     """
     Generates the cgMLST report along with a transposed version within the out_dir folder
     """
-    cgmlst_allele_report = out_dir / "cgMLST_Allele_Report.tsv"
-    cgmlst_allele_report_transposed = out_dir / "cgMLST_Allele_Report_transposed.tsv"
+    cgmlst_allele_report = out_dir / f"{sample_name}_cgMLST_Allele_Report.tsv"
+    cgmlst_allele_report_transposed = out_dir / f"{sample_name}_cgMLST_Allele_Report_transposed.tsv"
     cgmlst_df = get_sequence_type(df)
     cgmlst_df_transposed = cgmlst_df.transpose()
     cgmlst_df.to_csv(cgmlst_allele_report, sep="\t", index=None)
     cgmlst_df_transposed.to_csv(cgmlst_allele_report_transposed, sep="\t", header=False)
-    logging.debug(f"cgMLST report available at {cgmlst_allele_report}")
     return cgmlst_allele_report
 
 
-def generate_detailed_report(df: pd.DataFrame, out_dir: Path):
+def generate_detailed_report(df: pd.DataFrame, out_dir: Path, sample_name: str) -> Path:
     """
     Generates the detailed report within the out_dir folder
     """
-    output_detailed_report = out_dir / "BLASTn_Detailed_Report.tsv"
+    output_detailed_report = out_dir / f"{sample_name}_BLASTn_Detailed_Report.tsv"
     df.to_csv(output_detailed_report, sep="\t", index=None)
-    logging.debug(f"Detailed report available at {output_detailed_report}")
     return output_detailed_report
 
 
@@ -188,6 +191,7 @@ def multiprocess_blastn_call(database_files: list, input_assembly: Path, outdir:
     then returns a single dataframe of the combined results
     """
     df_params = [(database_file, input_assembly, outdir) for database_file in database_files]
+
     with Pool(multiprocessing.cpu_count() - 1) as p:
         df_list = p.starmap(closest_allele_df, df_params)
     df = combine_dataframes(df_list)
@@ -242,7 +246,7 @@ def process_blastn_df(df: pd.DataFrame, locus_name: str) -> pd.DataFrame:
     :param locus_name: Name of the locus represented in the *.BLASTn file
     :return: df containing only the top hit from the parsed *.BLASTn
     """
-    logging.debug(f"Checking {locus_name}...")
+    logging.debug(f"Processing {locus_name}...")
     # Filter by length to slen ratio
     df['lratio'] = df['length'] / df['slen']
     df['locus'] = locus_name
@@ -292,29 +296,35 @@ def call_makeblastdb(db_file: Path):
     db_name = db_file.with_suffix(".blastDB")
     if db_file.suffix == ".gz":
         cmd = f"gunzip -c {db_file} | makeblastdb -in - -parse_seqids -dbtype nucl -out {db_name} -title {db_name}"
-        run_subprocess(cmd)
+        run_subprocess(cmd, get_stdout=True)
     elif db_file.suffix == ".fasta":
         cmd = f"makeblastdb -in {db_file} -parse_seqids -dbtype nucl -out {db_name} -title {db_name}"
-        run_subprocess(cmd)
+        run_subprocess(cmd, get_stdout=True)
     elif db_file.suffix == "":
         os.rename(str(db_file), str(db_file.with_suffix(".fasta")))
         cmd = f"makeblastdb -in {db_file} -parse_seqids -dbtype nucl -out {db_name} -title {db_name}"
-        run_subprocess(cmd)
+        run_subprocess(cmd, get_stdout=True)
     else:
         logging.debug("Invalid file format provided to call_makeblastdb()")
 
 
-def makeblastdb_database(database: Path, loci_suffix: str = "*.gz") -> list:
+def makeblastdb_database(database: Path, cli_call: bool, loci_suffix: str = "*.gz") -> list:
     """
     Calls makeblastdb on every *.gz file in a given directory. Intended to function with the files retrieved via the
     EnterobasePull script (https://github.com/bfssi-forest-dussault/EnterobasePull).
     :param database: Path to database retrieved with EnterobasePull
     :param loci_suffix: Suffix of files to run makeblastdb on
+    :param cli_call: Flag to show progress bar if this was called via command-line
     """
     logging.debug(f"Calling makeblastdb on database at {database}")
     db_files = list(database.glob(loci_suffix))
-    for f in db_files:
-        call_makeblastdb(f)
+    if cli_call:
+        with click.progressbar(db_files, length=len(db_files), label='makeblastdb') as bar:
+            for f in bar:
+                call_makeblastdb(f)
+    else:
+        for f in db_files:
+            call_makeblastdb(f)
     return db_files
 
 
@@ -401,6 +411,10 @@ def run_subprocess(cmd: str, get_stdout: bool = False) -> str:
     else:
         p = Popen(cmd, shell=True)
         p.wait()
+
+
+class EmptyDatabase(Exception):
+    pass
 
 
 if __name__ == "__main__":
