@@ -88,6 +88,10 @@ def fasconcat_pipeline(targets: list, database: Path, out_dir: Path, fasconcat_e
     # Create multifasta with fasconcat
     call_fasconcat(target_dir=out_dir, fasconcat_exec=fasconcat_exec)
 
+    # Final cleanup
+    for fasta in fasta_files:
+        os.remove(str(fasta))
+
 
 def get_top_qseq(df: pd.DataFrame, locus: str) -> str:
     locus_df = df[df['locus'] == locus]
