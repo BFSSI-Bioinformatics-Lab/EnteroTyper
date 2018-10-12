@@ -5,7 +5,8 @@ import pandas as pd
 import multiprocessing
 from pathlib import Path
 from subprocess import Popen
-from enterobase_typer import get_database_files, run_subprocess, create_outdir
+from enterobase_typer import get_database_files, run_subprocess, create_outdir, generate_cgmlst_report
+from sequence_type_comparison import call_sequence_comparison
 
 
 def convert_to_path(ctx, param, value):
@@ -81,16 +82,30 @@ def fasconcat_pipeline(targets: list, database: Path, out_dir: Path, fasconcat_e
 
     # Cleanup
     logging.info("Deleting interim files")
-    fasta_to_delete = [str(fasta) for fasta in fasta_files if '.align.' not in fasta.name]
-    for fasta in fasta_to_delete:
-        os.remove(fasta)
+    [os.remove(str(fasta)) for fasta in fasta_files]
+
+    # Grab newly aligned fasta files
+    aligned_fasta_files = list(out_dir.glob("*.align.fasta"))
 
     # Create multifasta with fasconcat
     call_fasconcat(target_dir=out_dir, fasconcat_exec=fasconcat_exec)
 
-    # Final cleanup
-    for fasta in fasta_files:
-        os.remove(str(fasta))
+    # Remove remaining fasta files
+    [os.remove(str(fasta)) for fasta in aligned_fasta_files]
+
+    # Sequence type comparison
+    sequence_type_report_list = []
+    with click.progressbar(targets, length=len(targets), label='Extracting sequence types') as bar:
+        for target in bar:
+            df = pd.read_csv(target, sep='\t')
+            cgmlst_allele_report = generate_cgmlst_report(df=df, out_dir=out_dir,
+                                                          sample_name=target.name.split("_")[0])
+            sequence_type_report_list.append(cgmlst_allele_report)
+
+    call_sequence_comparison(targets=sequence_type_report_list, out_dir=out_dir / 'sequence_type_comparisons')
+
+    # Cleanup reports
+    [os.remove(str(report)) for report in sequence_type_report_list]
 
 
 def get_top_qseq(df: pd.DataFrame, locus: str) -> str:
