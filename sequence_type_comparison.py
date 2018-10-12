@@ -47,37 +47,40 @@ def call_sequence_comparison(targets: list, out_dir: Path):
     targets = [Path(target) for target in targets]
     target_dict = {}
     for target in targets:
-        target_name = target.with_suffix("").name.replace("_cgMLST_Allele_Report_transposed", "")
+        target_name = target.with_suffix("").name.replace("_cgMLST_Allele_Report", "")
         target_dict[target_name] = target
 
     # Make pairwise comparisons
     pairwise_dict = {}
     mismatch_dict = {}
-    for target_1, target_1_report in target_dict.items():
-        inner_dict = {}
-        inner_mismatch_dict = {}
-        for target_2, target_2_report in target_dict.items():
-            # Difference dict
-            difference_dict = compare_reports(target_1_report, target_2_report)
-            inner_dict[target_2] = difference_dict
 
-            # Total mismatches
-            mismatches = count_mismatches(difference_dict)
-            inner_mismatch_dict[target_2] = mismatches
+    with click.progressbar(target_dict.items(), length=len(target_dict), label='Pairwise comparisons') as bar:
+        for target_1, target_1_report in bar:
+            inner_dict = {}
+            inner_mismatch_dict = {}
+            for target_2, target_2_report in target_dict.items():
+                # Difference dict
+                difference_dict = compare_reports(target_1_report, target_2_report)
+                inner_dict[target_2] = difference_dict
 
-        mismatch_dict[target_1] = inner_mismatch_dict
-        pairwise_dict[target_1] = inner_dict
+                # Total mismatches
+                mismatches = count_mismatches(difference_dict)
+                inner_mismatch_dict[target_2] = mismatches
 
-    for key, val in pairwise_dict.items():
-        df = pd.DataFrame.from_dict(val)
-        out_name = out_dir / (key + "_pairwise_comparisons.xlsx")
-        if out_name.exists():
-            continue
-        writer = pd.ExcelWriter(str(out_name), engine='xlsxwriter')
-        df.to_excel(writer, sheet_name=key)
-        worksheet = writer.sheets[key]
-        worksheet.conditional_format('B2:AZ4000', {'type': '2_color_scale'})
-        writer.save()
+            mismatch_dict[target_1] = inner_mismatch_dict
+            pairwise_dict[target_1] = inner_dict
+
+    with click.progressbar(pairwise_dict.items(), length=len(pairwise_dict), label='Writing .xlsx') as bar:
+        for key, val in bar:
+            df = pd.DataFrame.from_dict(val)
+            out_name = out_dir / (key + "_pairwise_comparisons.xlsx")
+            if out_name.exists():
+                continue
+            writer = pd.ExcelWriter(str(out_name), engine='xlsxwriter')
+            df.to_excel(writer, sheet_name=key)
+            worksheet = writer.sheets[key]
+            worksheet.conditional_format('B2:AZ4000', {'type': '2_color_scale'})
+            writer.save()
 
     master_df = []
     out_name = out_dir / "all_samples_comparison.xlsx"
