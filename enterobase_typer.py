@@ -145,11 +145,9 @@ def generate_cgmlst_report(df: pd.DataFrame, out_dir: Path, sample_name: str) ->
     Generates the cgMLST report along with a transposed version within the out_dir folder
     """
     cgmlst_allele_report = out_dir / f"{sample_name}_cgMLST_Allele_Report.tsv"
-    cgmlst_allele_report_transposed = out_dir / f"{sample_name}_cgMLST_Allele_Report_transposed.tsv"
     cgmlst_df = get_sequence_type(df)
     cgmlst_df_transposed = cgmlst_df.transpose()
-    cgmlst_df.to_csv(cgmlst_allele_report, sep="\t", index=None)
-    cgmlst_df_transposed.to_csv(cgmlst_allele_report_transposed, sep="\t", header=False)
+    cgmlst_df_transposed.to_csv(cgmlst_allele_report, sep="\t", header=False)
     return cgmlst_allele_report
 
 
