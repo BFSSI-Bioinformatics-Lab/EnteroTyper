@@ -13,6 +13,7 @@ import logging
 import multiprocessing
 import pandas as pd
 
+from tqdm import tqdm
 from numba import jit
 from subprocess import Popen, PIPE
 from multiprocessing import Pool
@@ -85,12 +86,11 @@ def main(input_assembly: Path, database: Path, out_dir: Path, create_db: bool, v
             level=logging.INFO,
             datefmt='%Y-%m-%d %H:%M:%S')
 
-    cli_call = True
     type_sample(input_assembly=input_assembly, database=database,
-                out_dir=out_dir, create_db=create_db, cli_call=cli_call)
+                out_dir=out_dir, create_db=create_db)
 
 
-def type_sample(input_assembly: Path, database: Path, out_dir: Path, create_db: bool, cli_call: bool = False):
+def type_sample(input_assembly: Path, database: Path, out_dir: Path, create_db: bool, sample_name: str = None):
     """
     Function wrapping all of the functionality of the enterobase_typer script. Can be called directly.
     """
@@ -105,7 +105,7 @@ def type_sample(input_assembly: Path, database: Path, out_dir: Path, create_db: 
 
     # Call makeblastdb on each database file if create_db=True
     if create_db:
-        database_files = makeblastdb_database(database=database, cli_call=cli_call)
+        database_files = makeblastdb_database(database=database)
     else:
         database_files = get_database_files(database=database)
 
@@ -113,7 +113,8 @@ def type_sample(input_assembly: Path, database: Path, out_dir: Path, create_db: 
     df = multiprocess_blastn_call(database_files, input_assembly, out_dir)
 
     # Grab sample name from input_assembly
-    sample_name = input_assembly.with_suffix("").name.replace(".pilon", "")
+    if sample_name is None:
+        sample_name = input_assembly.with_suffix("").name.replace(".pilon", "")
 
     # Prepare detailed report
     detailed_report = generate_detailed_report(df=df, out_dir=out_dir, sample_name=sample_name)
@@ -124,9 +125,9 @@ def type_sample(input_assembly: Path, database: Path, out_dir: Path, create_db: 
     # Move BLASTn files
     move_blastn_files(out_dir=out_dir)
 
-    logging.info(f"=============TYPING COMPLETE=============")
     logging.info(f"cgMLST Allele Report: {cgmlst_allele_report}")
     logging.info(f"Detailed Report: {detailed_report}")
+    return detailed_report
 
 
 def move_blastn_files(out_dir: Path):
@@ -243,7 +244,7 @@ def process_blastn_df(df: pd.DataFrame, locus_name: str) -> pd.DataFrame:
     :param locus_name: Name of the locus represented in the *.BLASTn file
     :return: df containing only the top hit from the parsed *.BLASTn
     """
-    logging.debug(f"Processing {locus_name}...")
+    logging.debug(f"Processing locus: {locus_name}...")
     # Filter by length to slen ratio
     df['lratio'] = df['length'] / df['slen']
     df['locus'] = locus_name
@@ -305,23 +306,17 @@ def call_makeblastdb(db_file: Path):
         logging.debug("Invalid file format provided to call_makeblastdb()")
 
 
-def makeblastdb_database(database: Path, cli_call: bool, loci_suffix: str = "*.gz") -> list:
+def makeblastdb_database(database: Path, loci_suffix: str = "*.gz") -> list:
     """
     Calls makeblastdb on every *.gz file in a given directory. Intended to function with the files retrieved via the
     EnterobasePull script (https://github.com/bfssi-forest-dussault/EnterobasePull).
     :param database: Path to database retrieved with EnterobasePull
     :param loci_suffix: Suffix of files to run makeblastdb on
-    :param cli_call: Flag to show progress bar if this was called via command-line
     """
     logging.debug(f"Calling makeblastdb on database at {database}")
     db_files = list(database.glob(loci_suffix))
-    if cli_call:
-        with click.progressbar(db_files, length=len(db_files), label='makeblastdb') as bar:
-            for f in bar:
-                call_makeblastdb(f)
-    else:
-        for f in db_files:
-            call_makeblastdb(f)
+    for f in tqdm(db_files):
+        call_makeblastdb(f)
     return db_files
 
 

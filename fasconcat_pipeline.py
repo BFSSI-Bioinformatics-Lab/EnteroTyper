@@ -3,8 +3,9 @@ import click
 import logging
 import pandas as pd
 import multiprocessing
+from tqdm import tqdm
 from pathlib import Path
-from subprocess import Popen
+from subprocess import Popen, DEVNULL
 from enterobase_typer import get_database_files, run_subprocess, create_outdir, generate_cgmlst_report
 from sequence_type_comparison import call_sequence_comparison
 
@@ -76,31 +77,30 @@ def fasconcat_pipeline(targets: list, database: Path, out_dir: Path, fasconcat_e
         p.starmap(write_fasta, df_params)
 
     logging.info("Aligning .FASTA files with MUSCLE")
-    fasta_files = list(out_dir.glob("*.fasta"))
+    fasta_files = list(out_dir.glob("*.fas"))
     with multiprocessing.Pool(multiprocessing.cpu_count() - 1) as p:
         p.map(call_muscle, fasta_files)
 
     # Cleanup
     logging.info("Deleting interim files")
-    [os.remove(str(fasta)) for fasta in fasta_files]
+    # [os.remove(str(fasta)) for fasta in fasta_files]
 
     # Grab newly aligned fasta files
-    aligned_fasta_files = list(out_dir.glob("*.align.fasta"))
+    aligned_fasta_files = list(out_dir.glob("*.align.fas"))
 
     # Create multifasta with fasconcat
     call_fasconcat(target_dir=out_dir, fasconcat_exec=fasconcat_exec)
 
     # Remove remaining fasta files
-    [os.remove(str(fasta)) for fasta in aligned_fasta_files]
+    # [os.remove(str(fasta)) for fasta in aligned_fasta_files]
 
     # Sequence type comparison
     sequence_type_report_list = []
-    with click.progressbar(targets, length=len(targets), label='Extracting sequence types') as bar:
-        for target in bar:
-            df = pd.read_csv(target, sep='\t')
-            cgmlst_allele_report = generate_cgmlst_report(df=df, out_dir=out_dir,
-                                                          sample_name=target.name.split("_")[0])
-            sequence_type_report_list.append(cgmlst_allele_report)
+    for target in tqdm(targets):
+        df = pd.read_csv(target, sep='\t')
+        cgmlst_allele_report = generate_cgmlst_report(df=df, out_dir=out_dir,
+                                                      sample_name=target.name.split("_")[0])
+        sequence_type_report_list.append(cgmlst_allele_report)
 
     call_sequence_comparison(targets=sequence_type_report_list, out_dir=out_dir / 'sequence_type_comparisons')
 
@@ -125,7 +125,7 @@ def write_fasta(database_file: Path, outdir: Path, report_dict: dict):
     locus = database_file.with_suffix("").name
     locus_length = 0
     logging.debug(f"{locus}...")
-    outfile = str(outdir / database_file.with_suffix(".fasta").name)
+    outfile = str(outdir / database_file.with_suffix(".fas").name)
     with open(outfile, "w") as out:
         for target, report_path in report_dict.items():
             out.write(f">{target}\n")
@@ -139,15 +139,14 @@ def write_fasta(database_file: Path, outdir: Path, report_dict: dict):
 
 
 def call_muscle(infile: Path):
-    outfile = infile.with_suffix(".align.fasta")
+    outfile = infile.with_suffix(".align.fas")
     cmd = f"muscle -in {infile} -out {outfile} -maxiters 1"
-    logging.debug(cmd)
     run_subprocess(cmd, get_stdout=True)
 
 
 def call_fasconcat(target_dir: Path, fasconcat_exec: Path):
     cmd = f"perl {fasconcat_exec} -s -p"
-    p = Popen(cmd, shell=True, cwd=str(target_dir))
+    p = Popen(cmd, shell=True, cwd=str(target_dir), stdout=DEVNULL, stderr=DEVNULL)
     p.wait()
 
 
