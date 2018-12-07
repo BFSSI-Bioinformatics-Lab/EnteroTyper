@@ -9,8 +9,26 @@ Database files retrieved from Enterobase can be automatically formatted via make
 
 Salmonella assemblies are typically conducted with the [ProkaryoteAssembly](https://github.com/bfssi-forest-dussault/ProkaryoteAssembly) pipeline at BFSSI.
 
-### Usage
-```bash
+### Multi-sample Usage
+```
+Usage: enterobase_typer_multi.py [OPTIONS]
+
+Options:
+  -i, --input_dir PATH  Path to directory containing FASTA assemblies
+                        [required]
+  -db, --database PATH  Path to your MLST database  [required]
+  -o, --out_dir PATH    Root directory to store all output files  [required]
+  --create_db           Set this flag to create the blastDB files using
+                        makeblastdb in the specified database directory.Will
+                        re-create the database files if they are already
+                        present.
+  -v, --verbose         Set this flag to enable more verbose logging.
+  --version             Specify this flag to print the version and exit.
+  --help                Show this message and exit.
+```
+
+### Single-sample Usage
+```
 Usage: enterobase_typer.py [OPTIONS]
 
 Options:
