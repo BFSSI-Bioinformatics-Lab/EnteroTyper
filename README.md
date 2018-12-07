@@ -9,6 +9,8 @@ Database files retrieved from Enterobase can be automatically formatted via make
 
 Salmonella assemblies are typically conducted with the [ProkaryoteAssembly](https://github.com/bfssi-forest-dussault/ProkaryoteAssembly) pipeline at BFSSI.
 
+Relies on [FASconCAT-G](https://github.com/PatrickKueck/FASconCAT-G) for final steps.
+
 ### Multi-sample Usage
 ```
 Usage: enterobase_typer_multi.py [OPTIONS]
