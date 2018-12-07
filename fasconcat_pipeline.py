@@ -83,7 +83,7 @@ def fasconcat_pipeline(targets: list, database: Path, out_dir: Path, fasconcat_e
 
     # Cleanup
     logging.info("Deleting interim files")
-    # [os.remove(str(fasta)) for fasta in fasta_files]
+    [os.remove(str(fasta)) for fasta in fasta_files]
 
     # Grab newly aligned fasta files
     aligned_fasta_files = list(out_dir.glob("*.align.fas"))
@@ -92,7 +92,7 @@ def fasconcat_pipeline(targets: list, database: Path, out_dir: Path, fasconcat_e
     call_fasconcat(target_dir=out_dir, fasconcat_exec=fasconcat_exec)
 
     # Remove remaining fasta files
-    # [os.remove(str(fasta)) for fasta in aligned_fasta_files]
+    [os.remove(str(fasta)) for fasta in aligned_fasta_files]
 
     # Sequence type comparison
     sequence_type_report_list = []
