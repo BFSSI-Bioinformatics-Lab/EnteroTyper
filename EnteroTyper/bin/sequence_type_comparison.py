@@ -2,7 +2,7 @@ import logging
 import pandas as pd
 from pathlib import Path
 from tqdm import tqdm
-from bin.enterobase_typer import create_outdir
+from EnteroTyper.bin.enterobase_typer import create_outdir
 
 
 def call_sequence_comparison(targets: list, out_dir: Path):

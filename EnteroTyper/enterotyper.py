@@ -1,12 +1,12 @@
 import click
 import logging
 from pathlib import Path
-from bin.enterobase_typer import type_sample, makeblastdb_database
-from bin.enterobase_typer_multi import get_sample_name_dict
-from bin.sequence_concatenation_pipeline import sequence_concatenation_pipeline
-from bin.sequence_type_comparison import call_sequence_comparison
+from EnteroTyper.bin.enterobase_typer import type_sample, makeblastdb_database
+from EnteroTyper.bin.enterobase_typer_multi import get_sample_name_dict
+from EnteroTyper.bin.sequence_concatenation_pipeline import sequence_concatenation_pipeline
+from EnteroTyper.bin.sequence_type_comparison import call_sequence_comparison
 
-from __init__ import __email__, __author__, __version__
+from EnteroTyper.__init__ import __email__, __author__, __version__
 
 
 def convert_to_path(ctx, param, value):

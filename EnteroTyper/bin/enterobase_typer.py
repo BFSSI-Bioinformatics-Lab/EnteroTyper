@@ -6,10 +6,9 @@ import multiprocessing
 import pandas as pd
 
 from tqdm import tqdm
-from numba import jit
 from multiprocessing import Pool
 from pathlib import Path
-from bin.accessories import run_subprocess
+from EnteroTyper.bin.accessories import run_subprocess
 
 script = os.path.basename(__file__)
 
@@ -144,7 +143,6 @@ def closest_allele_df(database_file: Path, input_assembly: Path, outdir: Path) -
     return df
 
 
-@jit()
 def get_sequence_type(df: pd.DataFrame) -> pd.DataFrame:
     loci = df['locus'].unique()
     sequence_type_dict = {}
