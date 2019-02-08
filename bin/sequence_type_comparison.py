@@ -19,6 +19,7 @@ def call_sequence_comparison(targets: list, out_dir: Path):
     pairwise_dict = {}
     mismatch_dict = {}
 
+    logging.info("Counting mismatches between samples")
     for target_1, target_1_report in tqdm(target_dict.items()):
         inner_dict = {}
         inner_mismatch_dict = {}
@@ -34,6 +35,7 @@ def call_sequence_comparison(targets: list, out_dir: Path):
         mismatch_dict[target_1] = inner_mismatch_dict
         pairwise_dict[target_1] = inner_dict
 
+    logging.info("Conducting pairwise comparisons")
     for key, val in tqdm(pairwise_dict.items()):
         df = pd.DataFrame.from_dict(val)
         out_name = out_dir / (key + "_pairwise_comparisons.xlsx")
@@ -47,7 +49,8 @@ def call_sequence_comparison(targets: list, out_dir: Path):
 
     master_df = []
     out_name = out_dir / "all_samples_comparison.xlsx"
-    for key, val in mismatch_dict.items():
+    logging.info("Processing data for final comparison report")
+    for key, val in tqdm(mismatch_dict.items()):
         df = pd.DataFrame.from_dict(val, orient='index').transpose()
         df['id'] = key
         df = df.set_index('id')
@@ -131,7 +134,3 @@ def count_mismatches(difference_dict: dict) -> int:
     for key, val in difference_dict.items():
         mismatch_counter += val
     return mismatch_counter
-
-
-if __name__ == "__main__":
-    main()
