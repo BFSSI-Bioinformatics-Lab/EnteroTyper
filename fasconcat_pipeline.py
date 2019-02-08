@@ -105,7 +105,11 @@ def fasconcat_pipeline(targets: list, database: Path, out_dir: Path, fasconcat_e
     call_sequence_comparison(targets=sequence_type_report_list, out_dir=out_dir / 'sequence_type_comparisons')
 
     # Cleanup reports
-    [os.remove(str(report)) for report in sequence_type_report_list]
+    for report in sequence_type_report_list:
+        try:
+            os.remove(str(report))
+        except FileNotFoundError:
+            continue
 
 
 def get_top_qseq(df: pd.DataFrame, locus: str) -> str:
