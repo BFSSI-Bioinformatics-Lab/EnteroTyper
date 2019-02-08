@@ -1,9 +1,9 @@
 import os
 import click
 import logging
-from tqdm import tqdm
-from enterobase_typer import type_sample
+from enterobase_typer import type_sample, makeblastdb_database
 from fasconcat_pipeline import fasconcat_pipeline
+from __init__ import __version__, __author__, __email__
 
 from pathlib import Path
 
@@ -79,12 +79,19 @@ def main(input_dir: Path, database: Path, out_dir: Path, create_db: bool, verbos
     sample_name_dict = get_sample_name_dict(indir=input_dir)
     detailed_report_list = []
 
+    # Set up the database if needed
+    if create_db:
+        makeblastdb_database(database=database)
+
+    # Call enterobase_typer.type_sample() on all .FASTA files in input_dir
     for sample_name, assembly in sample_name_dict.items():
         sample_out_dir = out_dir / sample_name
         detailed_report = type_sample(input_assembly=assembly, database=database, out_dir=sample_out_dir,
-                                      create_db=create_db, sample_name=sample_name)
+                                      create_db=False, sample_name=sample_name)
         detailed_report_list.append(detailed_report)
 
+    # Call FASconCAT-G on everything
+    # TODO: Replace this with the concatenation script in the core genome script (bin.alignments)
     fasconcat_pipeline(targets=detailed_report_list, out_dir=out_dir / 'fasconcat', fasconcat_exec=FASCONCAT,
                        database=database)
 
