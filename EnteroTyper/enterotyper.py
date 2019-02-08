@@ -38,7 +38,8 @@ def enterotyper():
     pass
 
 
-@enterotyper.command(short_help="Types an assembly based on a given Enterobase scheme")
+@enterotyper.command(help="Types an assembly based on a given Enterobase scheme",
+                     short_help="Types an assembly based on a given Enterobase scheme")
 @click.option('-i', '--input_assembly',
               type=click.Path(exists=True),
               required=True,
@@ -86,7 +87,8 @@ def typer(input_assembly: Path, database: Path, out_dir: Path, create_db: bool, 
     logging.info("Script complete")
 
 
-@enterotyper.command(short_help="Runs typer on many samples simultaneously")
+@enterotyper.command(help="Runs typer on many samples simultaneously",
+                     short_help="Runs typer on many samples simultaneously")
 @click.option('-i', '--indir',
               type=click.Path(exists=True),
               required=True,
