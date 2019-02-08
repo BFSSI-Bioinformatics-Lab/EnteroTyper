@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-# TODO: Fix the inconsistent naming between the GitHub project and PyCharm project. Rename to EnterobaseTyper.
-
 import os
 import gzip
 import shutil
