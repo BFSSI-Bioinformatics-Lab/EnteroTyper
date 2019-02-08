@@ -2,15 +2,12 @@ import os
 import click
 import logging
 from enterobase_typer import type_sample, makeblastdb_database
-from fasconcat_pipeline import fasconcat_pipeline
+from sequence_concatenation_pipeline import sequence_concatenation_pipeline
 from __init__ import __version__, __author__, __email__
-
 from pathlib import Path
 
 script = os.path.basename(__file__)
-
 ROOT_DIR = Path(__file__).parent
-FASCONCAT = ROOT_DIR / 'FASconCAT-G_v1.04.pl'
 
 
 def print_version(ctx, param, value):
@@ -30,7 +27,7 @@ def convert_to_path(ctx, param, value):
 
 
 @click.command()
-@click.option('-i', '--input_dir',
+@click.option('-i', '--indir',
               type=click.Path(exists=True),
               required=True,
               default=None,
@@ -42,7 +39,7 @@ def convert_to_path(ctx, param, value):
               default=None,
               help='Path to your MLST database',
               callback=convert_to_path)
-@click.option('-o', '--out_dir',
+@click.option('-o', '--outdir',
               type=click.Path(exists=False),
               required=True,
               default=None,
@@ -64,7 +61,7 @@ def convert_to_path(ctx, param, value):
               is_eager=True,
               callback=print_version,
               expose_value=False)
-def main(input_dir: Path, database: Path, out_dir: Path, create_db: bool, verbose: bool):
+def main(indir: Path, database: Path, outdir: Path, create_db: bool, verbose: bool):
     if verbose:
         logging.basicConfig(
             format='\033[92m \033[1m %(asctime)s \033[0m %(message)s ',
@@ -76,7 +73,7 @@ def main(input_dir: Path, database: Path, out_dir: Path, create_db: bool, verbos
             level=logging.INFO,
             datefmt='%Y-%m-%d %H:%M:%S')
 
-    sample_name_dict = get_sample_name_dict(indir=input_dir)
+    sample_name_dict = get_sample_name_dict(indir=indir)
     detailed_report_list = []
 
     # Set up the database if needed
@@ -85,15 +82,14 @@ def main(input_dir: Path, database: Path, out_dir: Path, create_db: bool, verbos
 
     # Call enterobase_typer.type_sample() on all .FASTA files in input_dir
     for sample_name, assembly in sample_name_dict.items():
-        sample_out_dir = out_dir / sample_name
+        sample_out_dir = outdir / sample_name
         detailed_report = type_sample(input_assembly=assembly, database=database, out_dir=sample_out_dir,
                                       create_db=False, sample_name=sample_name)
         detailed_report_list.append(detailed_report)
 
-    # Call FASconCAT-G on everything
-    # TODO: Replace this with the concatenation script in the core genome script (bin.alignments)
-    fasconcat_pipeline(targets=detailed_report_list, out_dir=out_dir / 'fasconcat', fasconcat_exec=FASCONCAT,
-                       database=database)
+    sequence_concatenation_pipeline(targets=detailed_report_list,
+                                    outdir=outdir / 'concatenated_sequences',
+                                    database=database)
 
 
 def get_sample_name_dict(indir: Path) -> dict:

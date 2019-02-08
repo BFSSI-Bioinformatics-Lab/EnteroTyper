@@ -9,9 +9,8 @@ Database files retrieved from Enterobase can be automatically formatted via make
 
 Salmonella assemblies are typically conducted with the [ProkaryoteAssembly](https://github.com/bfssi-forest-dussault/ProkaryoteAssembly) pipeline at BFSSI.
 
-Relies on [FASconCAT-G](https://github.com/PatrickKueck/FASconCAT-G) for final steps.
 
-### Multi-sample Usage
+### Multi-sample Usage (enterobase_tpyer_multi.py)
 ```
 Usage: enterobase_typer_multi.py [OPTIONS]
 
@@ -29,7 +28,7 @@ Options:
   --help                Show this message and exit.
 ```
 
-### Single-sample Usage
+### Single-sample Usage (enterobase_typer.py)
 ```
 Usage: enterobase_typer.py [OPTIONS]
 
@@ -47,3 +46,24 @@ Options:
   --version                  Specify this flag to print the version and exit.
   --help                     Show this message and exit.
   ```
+
+### Sequence Concatenation Pipeline (sequence_concatenation_pipeline.py)
+
+This helper script will take the output reports from the
+enterobase_typer.py script as input to generate a concatenated sequence
+file that can be fed to tree generating software.
+
+```
+Usage: sequence_concatenation_pipeline.py [OPTIONS] [TARGETS]...
+
+  Takes a list of target *.BLASTn_Detailed_Report.tsv files, followed by
+  several options. Extracts sequences from the BLASTn report files as .fasta
+  files, aligns them all with MUSCLE, and then concatenates all sequences
+  into a single FASTA.
+
+Options:
+  -o, --outdir PATH     Root directory to store all output files  [required]
+  -db, --database PATH  Path to your MLST database  [required]
+  -v, --verbose         Set this flag to enable more verbose logging.
+  --help                Show this message and exit.
+```
