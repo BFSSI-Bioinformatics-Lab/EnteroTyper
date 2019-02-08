@@ -5,8 +5,16 @@ from EnteroTyper.bin.enterobase_typer import type_sample, makeblastdb_database
 from EnteroTyper.bin.enterobase_typer_multi import get_sample_name_dict
 from EnteroTyper.bin.sequence_concatenation_pipeline import sequence_concatenation_pipeline
 from EnteroTyper.bin.sequence_type_comparison import call_sequence_comparison
+from EnteroTyper.bin.accessories import check_all_dependencies
 
 from EnteroTyper.__init__ import __email__, __author__, __version__
+
+DEPENDENCIES = [
+    'blastn',
+    'blastx',
+    'makeblastdb',
+    'muscle'
+]
 
 
 def convert_to_path(ctx, param, value):
@@ -72,6 +80,7 @@ def typer(input_assembly: Path, database: Path, out_dir: Path, create_db: bool, 
             datefmt='%Y-%m-%d %H:%M:%S')
 
     logging.info("Starting Enterotyper typer script")
+    check_all_dependencies(DEPENDENCIES)
     type_sample(input_assembly=input_assembly, database=database,
                 out_dir=out_dir, create_db=create_db)
     logging.info("Script complete")
@@ -118,6 +127,7 @@ def bulk(indir: Path, database: Path, outdir: Path, create_db: bool, verbose: bo
             level=logging.INFO,
             datefmt='%Y-%m-%d %H:%M:%S')
     logging.info("Starting Enterotyper bulk script")
+    check_all_dependencies(DEPENDENCIES)
 
     sample_name_dict = get_sample_name_dict(indir=indir)
     detailed_report_list = []
@@ -173,6 +183,7 @@ def concatenate(targets, outdir, database, verbose):
             datefmt='%Y-%m-%d %H:%M:%S')
 
     logging.info("Starting Enterotyper concatenate script")
+    check_all_dependencies(DEPENDENCIES)
     sequence_concatenation_pipeline(targets=targets, database=database, outdir=outdir)
     logging.info("Script complete")
 
@@ -204,6 +215,7 @@ def compare(targets, out_dir, verbose):
             level=logging.INFO,
             datefmt='%Y-%m-%d %H:%M:%S')
     logging.info("Starting Enterotyper compare script")
+    check_all_dependencies(DEPENDENCIES)
     call_sequence_comparison(targets=targets, out_dir=out_dir)
     logging.info("Script complete")
 
