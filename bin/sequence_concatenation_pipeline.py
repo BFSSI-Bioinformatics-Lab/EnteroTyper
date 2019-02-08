@@ -1,5 +1,4 @@
 import os
-import click
 import logging
 import pandas as pd
 import multiprocessing
@@ -30,10 +29,6 @@ def sequence_concatenation_pipeline(targets: list, database: Path, outdir: Path)
     fasta_files = list(outdir.glob("*.fasta"))
     with multiprocessing.Pool(multiprocessing.cpu_count() - 1) as p:
         p.map(call_muscle, fasta_files)
-
-    # Cleanup
-    # logging.info("Deleting interim files")
-    # [os.remove(str(fasta)) for fasta in fasta_files]
 
     # Grab newly aligned fasta files
     aligned_fasta_files = list(outdir.glob("*.align.fasta"))
@@ -206,7 +201,3 @@ def populate_template_dict(template_dict: dict, cluster_file: Path, sample_ids: 
             if s not in cluster_samples:
                 cluster_dict[s] += ('N' * seq_lengths[0])
         return cluster_dict
-
-
-if __name__ == "__main__":
-    main()
