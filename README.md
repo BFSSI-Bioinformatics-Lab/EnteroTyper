@@ -1,14 +1,14 @@
-# EnterobaseTyper
+# EnteroTyper
 
 This is a set of scripts to type assemblies according to schemes retrieved from Enterobase.
 
 Enterobase databases can be manually retrieved with [EnterobasePull](https://github.com/bfssi-forest-dussault/EnterobasePull). Database files retrieved from Enterobase can be automatically formatted via makeblastdb by the typer script.
 
-### Calling Enterotyper (*enterotyper.py*)
+### Calling EnteroTyper (*enterotyper.py*)
 ```
 Usage: enterotyper.py [OPTIONS] COMMAND [ARGS]...
 
-  Enterotyper is a suite of tools to type and evaluate assemblies with
+  EnteroTyper is a suite of tools to type and evaluate assemblies with
   Enterobase typing schemes.
 
 Options:
