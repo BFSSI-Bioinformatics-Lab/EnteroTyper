@@ -1,29 +1,9 @@
-import os
 import click
 import logging
 from enterobase_typer import type_sample, makeblastdb_database
 from sequence_concatenation_pipeline import sequence_concatenation_pipeline
-from __init__ import __version__, __author__, __email__
+from accessories import print_version, convert_to_path
 from pathlib import Path
-
-script = os.path.basename(__file__)
-ROOT_DIR = Path(__file__).parent
-
-
-def print_version(ctx, param, value):
-    if not value or ctx.resilient_parsing:
-        return
-    logging.info(f"Version: {__version__}")
-    logging.info(f"Author: {__author__}")
-    logging.info(f"Email: {__email__}")
-    quit()
-
-
-def convert_to_path(ctx, param, value):
-    if not value or ctx.resilient_parsing:
-        return
-    value = Path(value)
-    return value
 
 
 @click.command()

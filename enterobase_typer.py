@@ -1,10 +1,6 @@
 #!/usr/bin/env python3
 # TODO: Fix the inconsistent naming between the GitHub project and PyCharm project. Rename to EnterobaseTyper.
 
-__version__ = "0.0.1"
-__author__ = "Forest Dussault"
-__email__ = "forest.dussault@canada.ca"
-
 import os
 import gzip
 import click
@@ -15,28 +11,11 @@ import pandas as pd
 
 from tqdm import tqdm
 from numba import jit
-from subprocess import Popen, PIPE
 from multiprocessing import Pool
-
 from pathlib import Path
+from accessories import print_version, convert_to_path, run_subprocess
 
 script = os.path.basename(__file__)
-
-
-def print_version(ctx, param, value):
-    if not value or ctx.resilient_parsing:
-        return
-    logging.info(f"Version: {__version__}")
-    logging.info(f"Author: {__author__}")
-    logging.info(f"Email: {__email__}")
-    quit()
-
-
-def convert_to_path(ctx, param, value):
-    if not value or ctx.resilient_parsing:
-        return
-    value = Path(value)
-    return value
 
 
 @click.command()
@@ -386,23 +365,6 @@ def get_reverse_complement_row(row) -> str:
         return reverse_complement
     else:
         return sequence
-
-
-def run_subprocess(cmd: str, get_stdout: bool = False) -> str:
-    if get_stdout:
-        p = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
-        out, err = p.communicate()
-        out = out.decode().strip()
-        err = err.decode().strip()
-        if out != "":
-            return out
-        elif err != "":
-            return err
-        else:
-            return ""
-    else:
-        p = Popen(cmd, shell=True)
-        p.wait()
 
 
 class EmptyDatabase(Exception):

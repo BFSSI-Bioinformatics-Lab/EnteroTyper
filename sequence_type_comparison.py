@@ -3,13 +3,7 @@ import logging
 import pandas as pd
 from pathlib import Path
 from enterobase_typer import create_outdir
-
-
-def convert_to_path(ctx, param, value):
-    if not value or ctx.resilient_parsing:
-        return
-    value = Path(value)
-    return value
+from accessories import convert_to_path
 
 
 @click.command(help="Takes a list of target *.cgMLST_Allele_Report.tsv files, followed by several options. "

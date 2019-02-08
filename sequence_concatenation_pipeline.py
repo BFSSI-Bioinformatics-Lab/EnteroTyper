@@ -7,7 +7,8 @@ from copy import deepcopy
 from tqdm import tqdm
 from pathlib import Path
 from sequence_type_comparison import call_sequence_comparison
-from enterobase_typer import get_database_files, run_subprocess, create_outdir, generate_cgmlst_report
+from enterobase_typer import get_database_files, create_outdir, generate_cgmlst_report
+from accessories import run_subprocess
 
 
 def convert_to_path(ctx, param, value):
@@ -100,7 +101,7 @@ def sequence_concatenation_pipeline(targets: list, database: Path, outdir: Path)
     for target in tqdm(targets):
         df = pd.read_csv(target, sep='\t')
         cgmlst_allele_report = generate_cgmlst_report(df=df, out_dir=outdir,
-                                                      sample_name=target.name.split("_")[0])
+                                                      sample_name=target.name.rsplit("_", 1)[0])
         sequence_type_report_list.append(cgmlst_allele_report)
 
     call_sequence_comparison(targets=sequence_type_report_list, out_dir=outdir / 'sequence_type_comparisons')
