@@ -6,55 +6,9 @@ import multiprocessing
 from copy import deepcopy
 from tqdm import tqdm
 from pathlib import Path
-from sequence_type_comparison import call_sequence_comparison
-from enterobase_typer import get_database_files, create_outdir, generate_cgmlst_report
-from accessories import run_subprocess
-
-
-def convert_to_path(ctx, param, value):
-    if not value or ctx.resilient_parsing:
-        return
-    value = Path(value)
-    return value
-
-
-@click.command(help="Takes a list of target *.BLASTn_Detailed_Report.tsv files, followed by several options. "
-                    "Extracts sequences from the BLASTn report files as FASTA files, aligns them all with MUSCLE, and "
-                    "then concatenates all sequences into a single FASTA. ")
-@click.option('-o', '--outdir',
-              type=click.Path(exists=False),
-              required=True,
-              default=None,
-              help='Root directory to store all output files',
-              callback=convert_to_path)
-@click.option('-db', '--database',
-              type=click.Path(exists=True),
-              required=True,
-              default=None,
-              help='Path to your MLST database',
-              callback=convert_to_path)
-@click.option('-v', '--verbose',
-              is_flag=True,
-              default=False,  # Set this to false eventually
-              help='Set this flag to enable more verbose logging.')
-@click.argument('targets', nargs=-1, type=click.Path(exists=True))
-def main(targets, outdir, database, verbose):
-    if verbose:
-        logging.basicConfig(
-            format='\033[92m \033[1m %(asctime)s \033[0m %(message)s ',
-            level=logging.DEBUG,
-            datefmt='%Y-%m-%d %H:%M:%S')
-    else:
-        logging.basicConfig(
-            format='\033[92m \033[1m %(asctime)s \033[0m %(message)s ',
-            level=logging.INFO,
-            datefmt='%Y-%m-%d %H:%M:%S')
-
-    logging.info("Started concatenation pipeline")
-
-    sequence_concatenation_pipeline(targets=targets, database=database, outdir=outdir)
-
-    logging.info("Script complete")
+from bin.sequence_type_comparison import call_sequence_comparison
+from bin.enterobase_typer import get_database_files, create_outdir, generate_cgmlst_report
+from bin.accessories import run_subprocess
 
 
 def sequence_concatenation_pipeline(targets: list, database: Path, outdir: Path):

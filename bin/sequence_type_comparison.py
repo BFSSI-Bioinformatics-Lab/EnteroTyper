@@ -2,38 +2,7 @@ import click
 import logging
 import pandas as pd
 from pathlib import Path
-from enterobase_typer import create_outdir
-from accessories import convert_to_path
-
-
-@click.command(help="Takes a list of target *.cgMLST_Allele_Report.tsv files, followed by several options. "
-                    "Number of mismatches will be indicated in output files - a zero means no mismatches between types."
-               )
-@click.option('-o', '--out_dir',
-              type=click.Path(exists=False),
-              required=True,
-              default=None,
-              help='Root directory to store all output files',
-              callback=convert_to_path)
-@click.option('-v', '--verbose',
-              is_flag=True,
-              default=False,
-              help='Set this flag to enable more verbose logging.')
-@click.argument('targets', nargs=-1, type=click.Path(exists=True))
-def main(targets, out_dir, verbose):
-    if verbose:
-        logging.basicConfig(
-            format='\033[92m \033[1m %(asctime)s \033[0m %(message)s ',
-            level=logging.DEBUG,
-            datefmt='%Y-%m-%d %H:%M:%S')
-    else:
-        logging.basicConfig(
-            format='\033[92m \033[1m %(asctime)s \033[0m %(message)s ',
-            level=logging.INFO,
-            datefmt='%Y-%m-%d %H:%M:%S')
-    logging.info("Comparing provided sequences")
-    call_sequence_comparison(targets=targets, out_dir=out_dir)
-    logging.info("Script complete")
+from bin.enterobase_typer import create_outdir
 
 
 def call_sequence_comparison(targets: list, out_dir: Path):

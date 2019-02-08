@@ -3,7 +3,6 @@
 
 import os
 import gzip
-import click
 import shutil
 import logging
 import multiprocessing
@@ -13,60 +12,9 @@ from tqdm import tqdm
 from numba import jit
 from multiprocessing import Pool
 from pathlib import Path
-from accessories import print_version, convert_to_path, run_subprocess
+from bin.accessories import run_subprocess
 
 script = os.path.basename(__file__)
-
-
-@click.command()
-@click.option('-i', '--input_assembly',
-              type=click.Path(exists=True),
-              required=True,
-              default=None,
-              help='Path to input assembly in FASTA format',
-              callback=convert_to_path)
-@click.option('-db', '--database',
-              type=click.Path(exists=True),
-              required=True,
-              default=None,
-              help='Path to your MLST database',
-              callback=convert_to_path)
-@click.option('-o', '--out_dir',
-              type=click.Path(exists=False),
-              required=True,
-              default=None,
-              help='Root directory to store all output files',
-              callback=convert_to_path)
-@click.option('--create_db',
-              help='Set this flag to create the blastDB files using makeblastdb in the specified database directory.'
-                   'Will re-create the database files if they are already present.',
-              is_flag=True,
-              required=False,
-              default=False)
-@click.option('-v', '--verbose',
-              is_flag=True,
-              default=False,  # Set this to false eventually
-              help='Set this flag to enable more verbose logging.')
-@click.option('--version',
-              help='Specify this flag to print the version and exit.',
-              is_flag=True,
-              is_eager=True,
-              callback=print_version,
-              expose_value=False)
-def main(input_assembly: Path, database: Path, out_dir: Path, create_db: bool, verbose: bool):
-    if verbose:
-        logging.basicConfig(
-            format='\033[92m \033[1m %(asctime)s \033[0m %(message)s ',
-            level=logging.DEBUG,
-            datefmt='%Y-%m-%d %H:%M:%S')
-    else:
-        logging.basicConfig(
-            format='\033[92m \033[1m %(asctime)s \033[0m %(message)s ',
-            level=logging.INFO,
-            datefmt='%Y-%m-%d %H:%M:%S')
-
-    type_sample(input_assembly=input_assembly, database=database,
-                out_dir=out_dir, create_db=create_db)
 
 
 def type_sample(input_assembly: Path, database: Path, out_dir: Path, create_db: bool, sample_name: str = None):
@@ -323,7 +271,7 @@ def call_blastn(database_file: Path, query_fasta: Path, out_dir: Path) -> (Path,
     reference_name = query_fasta.with_suffix('').name
     out_file = out_dir / Path(reference_name + "." + locus_name + ".BLASTn")
     cmd = f"blastn -query {query_fasta} -db {database_file} -out {out_file} " \
-          f"-outfmt '6 qseqid sseqid slen length qstart qend pident score sstrand qseq' -word_size {word_size}"
+        f"-outfmt '6 qseqid sseqid slen length qstart qend pident score sstrand qseq' -word_size {word_size}"
     run_subprocess(cmd)
     return out_file, locus_name
 
@@ -369,7 +317,3 @@ def get_reverse_complement_row(row) -> str:
 
 class EmptyDatabase(Exception):
     pass
-
-
-if __name__ == "__main__":
-    main()
