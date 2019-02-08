@@ -12,7 +12,9 @@ def convert_to_path(ctx, param, value):
     return value
 
 
-@click.command(help="Takes a list of target *.cgMLST_Allele_Report_transposed.tsv files, followed by several options.")
+@click.command(help="Takes a list of target *.cgMLST_Allele_Report.tsv files, followed by several options. "
+                    "Number of mismatches will be indicated in output files - a zero means no mismatches between types."
+               )
 @click.option('-o', '--out_dir',
               type=click.Path(exists=False),
               required=True,
@@ -21,7 +23,7 @@ def convert_to_path(ctx, param, value):
               callback=convert_to_path)
 @click.option('-v', '--verbose',
               is_flag=True,
-              default=False,  # Set this to false eventually
+              default=False,
               help='Set this flag to enable more verbose logging.')
 @click.argument('targets', nargs=-1, type=click.Path(exists=True))
 def main(targets, out_dir, verbose):
