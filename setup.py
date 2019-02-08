@@ -1,5 +1,5 @@
 import setuptools
-from __init__ import __version__, __author__, __email__
+from EnteroTyper.__init__ import __version__, __author__, __email__
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
@@ -13,7 +13,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/BFSSI-Bioinformatics-Lab/EnteroTyper",
     package_data={'EnteroTyper': ['*']},
-    install_pacakage_data=True,
+    install_package_data=True,
     packages=setuptools.find_packages(),
     version=__version__,
     author=__author__,
