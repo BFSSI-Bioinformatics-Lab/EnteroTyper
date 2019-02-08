@@ -20,7 +20,7 @@ setuptools.setup(
     author_email=__email__,
     entry_points={
         'console_scripts': [
-            'enterotyper=EnteroTyper.enterotyper:cli'
+            'enterotyper=EnteroTyper.enterotyper:enterotyper'
         ]
     }
 )
