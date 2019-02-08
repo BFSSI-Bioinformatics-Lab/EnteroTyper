@@ -1,7 +1,7 @@
-import click
 import logging
 import pandas as pd
 from pathlib import Path
+from tqdm import tqdm
 from bin.enterobase_typer import create_outdir
 
 
@@ -19,33 +19,31 @@ def call_sequence_comparison(targets: list, out_dir: Path):
     pairwise_dict = {}
     mismatch_dict = {}
 
-    with click.progressbar(target_dict.items(), length=len(target_dict), label='Pairwise comparisons') as bar:
-        for target_1, target_1_report in bar:
-            inner_dict = {}
-            inner_mismatch_dict = {}
-            for target_2, target_2_report in target_dict.items():
-                # Difference dict
-                difference_dict = compare_reports(target_1_report, target_2_report)
-                inner_dict[target_2] = difference_dict
+    for target_1, target_1_report in tqdm(target_dict.items()):
+        inner_dict = {}
+        inner_mismatch_dict = {}
+        for target_2, target_2_report in target_dict.items():
+            # Difference dict
+            difference_dict = compare_reports(target_1_report, target_2_report)
+            inner_dict[target_2] = difference_dict
 
-                # Total mismatches
-                mismatches = count_mismatches(difference_dict)
-                inner_mismatch_dict[target_2] = mismatches
+            # Total mismatches
+            mismatches = count_mismatches(difference_dict)
+            inner_mismatch_dict[target_2] = mismatches
 
-            mismatch_dict[target_1] = inner_mismatch_dict
-            pairwise_dict[target_1] = inner_dict
+        mismatch_dict[target_1] = inner_mismatch_dict
+        pairwise_dict[target_1] = inner_dict
 
-    with click.progressbar(pairwise_dict.items(), length=len(pairwise_dict), label='Writing .xlsx') as bar:
-        for key, val in bar:
-            df = pd.DataFrame.from_dict(val)
-            out_name = out_dir / (key + "_pairwise_comparisons.xlsx")
-            if out_name.exists():
-                continue
-            writer = pd.ExcelWriter(str(out_name), engine='xlsxwriter')
-            df.to_excel(writer, sheet_name=key)
-            worksheet = writer.sheets[key]
-            worksheet.conditional_format('B2:AZ4000', {'type': '2_color_scale'})
-            writer.save()
+    for key, val in tqdm(pairwise_dict.items()):
+        df = pd.DataFrame.from_dict(val)
+        out_name = out_dir / (key + "_pairwise_comparisons.xlsx")
+        if out_name.exists():
+            continue
+        writer = pd.ExcelWriter(str(out_name), engine='xlsxwriter')
+        df.to_excel(writer, sheet_name=key)
+        worksheet = writer.sheets[key]
+        worksheet.conditional_format('B2:AZ4000', {'type': '2_color_scale'})
+        writer.save()
 
     master_df = []
     out_name = out_dir / "all_samples_comparison.xlsx"
@@ -68,9 +66,8 @@ def compare_reports(report_1: Path, report_2: Path) -> dict:
     dict_2 = read_allele_report(report_2)
     difference_dict = compare_allele_dicts(dict_1, dict_2)
     mismatches = count_mismatches(difference_dict)
-
-    logging.debug(f"NUM. MISMATCHES: {mismatches}/{len(difference_dict)}")
     mismatch_pct = (mismatches / len(difference_dict)) * 100
+    logging.debug(f"NUM. MISMATCHES: {mismatches}/{len(difference_dict)}")
     logging.debug(f"PERCENT MISMATCH: {mismatch_pct}%")
     return difference_dict
 
@@ -78,13 +75,11 @@ def compare_reports(report_1: Path, report_2: Path) -> dict:
 def read_allele_report(report: Path) -> dict:
     df = pd.read_csv(report, delimiter="\t", index_col=None, header=None)
     dct = dict(zip(df.iloc[:, 0], df.iloc[:, 1]))
-
     for key, val in dct.items():
         try:
             dct[key] = str(int(val))
         except ValueError:
             dct[key] = "NA"
-
     return dct
 
 
