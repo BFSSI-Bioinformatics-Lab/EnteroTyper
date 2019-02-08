@@ -18,7 +18,7 @@ def convert_to_path(ctx, param, value):
 
 
 @click.command(help="Takes a list of target *.BLASTn_Detailed_Report.tsv files, followed by several options. "
-                    "Extracts sequences from the BLASTn report files as .fasta files, aligns them all with MUSCLE, and "
+                    "Extracts sequences from the BLASTn report files as FASTA files, aligns them all with MUSCLE, and "
                     "then concatenates all sequences into a single FASTA. ")
 @click.option('-o', '--outdir',
               type=click.Path(exists=False),
