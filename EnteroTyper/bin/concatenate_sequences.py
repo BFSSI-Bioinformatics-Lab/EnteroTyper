@@ -5,8 +5,8 @@ import multiprocessing
 from copy import deepcopy
 from tqdm import tqdm
 from pathlib import Path
-from EnteroTyper.bin.sequence_type_comparison import call_sequence_comparison
-from EnteroTyper.bin.enterobase_typer import get_database_files, create_outdir, generate_cgmlst_report
+from EnteroTyper.bin.compare_sequences_types import call_sequence_comparison
+from EnteroTyper.bin.typer import get_database_files, create_outdir, generate_cgmlst_report
 from EnteroTyper.bin.accessories import run_subprocess
 
 

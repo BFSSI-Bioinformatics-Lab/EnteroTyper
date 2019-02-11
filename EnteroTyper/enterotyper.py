@@ -1,10 +1,10 @@
 import click
 import logging
 from pathlib import Path
-from EnteroTyper.bin.enterobase_typer import type_sample, makeblastdb_database
-from EnteroTyper.bin.enterobase_typer_multi import bulk_sample_typing
-from EnteroTyper.bin.sequence_concatenation_pipeline import sequence_concatenation_pipeline
-from EnteroTyper.bin.sequence_type_comparison import call_sequence_comparison
+from EnteroTyper.bin.typer import type_sample, makeblastdb_database
+from EnteroTyper.bin.bulk_typer import bulk_sample_typing
+from EnteroTyper.bin.concatenate_sequences import sequence_concatenation_pipeline
+from EnteroTyper.bin.compare_sequences_types import call_sequence_comparison
 from EnteroTyper.bin.accessories import check_all_dependencies
 
 from EnteroTyper.__init__ import __email__, __author__, __version__

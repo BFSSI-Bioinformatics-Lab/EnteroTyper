@@ -1,5 +1,5 @@
 from pathlib import Path
-from EnteroTyper.bin.enterobase_typer import type_sample
+from EnteroTyper.bin.typer import type_sample
 
 
 def get_sample_name_dict(indir: Path) -> dict:
