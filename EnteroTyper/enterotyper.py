@@ -2,7 +2,7 @@ import click
 import logging
 from pathlib import Path
 from EnteroTyper.bin.enterobase_typer import type_sample, makeblastdb_database
-from EnteroTyper.bin.enterobase_typer_multi import get_sample_name_dict
+from EnteroTyper.bin.enterobase_typer_multi import bulk_sample_typing
 from EnteroTyper.bin.sequence_concatenation_pipeline import sequence_concatenation_pipeline
 from EnteroTyper.bin.sequence_type_comparison import call_sequence_comparison
 from EnteroTyper.bin.accessories import check_all_dependencies
@@ -131,20 +131,14 @@ def bulk(indir: Path, database: Path, outdir: Path, create_db: bool, verbose: bo
     logging.info("Starting Enterotyper bulk script")
     check_all_dependencies(DEPENDENCIES)
 
-    sample_name_dict = get_sample_name_dict(indir=indir)
-    detailed_report_list = []
-
     # Set up the database if needed
     if create_db:
         makeblastdb_database(database=database)
 
-    # Call enterobase_typer.type_sample() on all .FASTA files in input_dir
-    for sample_name, assembly in sample_name_dict.items():
-        sample_out_dir = outdir / sample_name
-        detailed_report = type_sample(input_assembly=assembly, database=database, outdir=sample_out_dir,
-                                      create_db=False, sample_name=sample_name)
-        detailed_report_list.append(detailed_report)
+    # Type every sample
+    detailed_report_list = bulk_sample_typing(indir=indir, outdir=outdir, database=database)
 
+    # Concatenate sequences
     sequence_concatenation_pipeline(targets=detailed_report_list,
                                     outdir=outdir / 'concatenated_sequences',
                                     database=database)
