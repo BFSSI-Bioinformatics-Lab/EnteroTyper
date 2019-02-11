@@ -17,7 +17,7 @@ pip install EnteroTyper
 ## Usage
 ### Calling EnteroTyper (*enterotyper.py*)
 ```
-Usage: enterotyper.py [OPTIONS] COMMAND [ARGS]...
+Usage: enterotyper [OPTIONS] COMMAND [ARGS]...
 
   EnteroTyper is a suite of tools to type and evaluate assemblies with
   Enterobase typing schemes.
@@ -35,7 +35,7 @@ Commands:
 
 ### Single-sample Usage
 ```
-Usage: enterotyper.py typer [OPTIONS]
+Usage: enterotyper typer [OPTIONS]
 
   Types an assembly based on an Enterobase scheme
 
@@ -56,7 +56,7 @@ Options:
 
 ### Multi-sample Usage
 ```
-Usage: enterotyper.py bulk [OPTIONS]
+Usage: enterotyper bulk [OPTIONS]
 
   Runs typer on many samples simultaneously
 
@@ -76,7 +76,7 @@ Options:
 
 ### Sequence Concatenation
 ```
-Usage: enterotyper.py concatenate [OPTIONS] [TARGETS]...
+Usage: enterotyper concatenate [OPTIONS] [TARGETS]...
 
   Takes a list of target *.BLASTn_Detailed_Report.tsv files, followed by
   several options. Extracts sequences from the BLASTn report files as FASTA
@@ -92,7 +92,7 @@ Options:
 
 ### Sequence Comparison
 ```
-Usage: enterotyper.py compare [OPTIONS] [TARGETS]...
+Usage: enterotyper compare [OPTIONS] [TARGETS]...
 
   Takes a list of target *.cgMLST_Allele_Report.tsv files as input.
   Number of mismatches will be indicated in output files -
