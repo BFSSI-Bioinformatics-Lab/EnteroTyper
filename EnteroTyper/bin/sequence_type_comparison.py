@@ -5,8 +5,8 @@ from tqdm import tqdm
 from EnteroTyper.bin.enterobase_typer import create_outdir
 
 
-def call_sequence_comparison(targets: list, out_dir: Path):
-    create_outdir(out_dir=out_dir)
+def call_sequence_comparison(targets: list, outdir: Path):
+    create_outdir(outdir=outdir)
 
     # Populate target_dict (key=sample name, value=path to report)
     targets = [Path(target) for target in targets]
@@ -38,7 +38,7 @@ def call_sequence_comparison(targets: list, out_dir: Path):
     logging.info("Conducting pairwise comparisons")
     for key, val in tqdm(pairwise_dict.items()):
         df = pd.DataFrame.from_dict(val)
-        out_name = out_dir / (key + "_pairwise_comparisons.xlsx")
+        out_name = outdir / (key + "_pairwise_comparisons.xlsx")
         if out_name.exists():
             continue
         writer = pd.ExcelWriter(str(out_name), engine='xlsxwriter')
@@ -48,7 +48,7 @@ def call_sequence_comparison(targets: list, out_dir: Path):
         writer.save()
 
     master_df = []
-    out_name = out_dir / "all_samples_comparison.xlsx"
+    out_name = outdir / "all_samples_comparison.xlsx"
     logging.info("Processing data for final comparison report")
     for key, val in tqdm(mismatch_dict.items()):
         df = pd.DataFrame.from_dict(val, orient='index').transpose()

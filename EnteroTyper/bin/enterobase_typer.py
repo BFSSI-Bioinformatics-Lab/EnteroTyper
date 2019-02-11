@@ -13,17 +13,17 @@ from EnteroTyper.bin.accessories import run_subprocess
 script = os.path.basename(__file__)
 
 
-def type_sample(input_assembly: Path, database: Path, out_dir: Path, create_db: bool, sample_name: str = None):
+def type_sample(input_assembly: Path, database: Path, outdir: Path, create_db: bool, sample_name: str = None):
     """
     Function wrapping all of the functionality of the enterobase_typer script. Can be called directly.
     """
 
     # Output directory creation/validation
-    create_outdir(out_dir=out_dir)
+    create_outdir(outdir=outdir)
 
     logging.debug(f"input_assembly: {input_assembly}")
     logging.debug(f"database: {database}")
-    logging.debug(f"outdir: {out_dir}")
+    logging.debug(f"outdir: {outdir}")
     logging.debug(f"create_db: {create_db}")
 
     # Call makeblastdb on each database file if create_db=True
@@ -33,20 +33,20 @@ def type_sample(input_assembly: Path, database: Path, out_dir: Path, create_db: 
         database_files = get_database_files(database=database)
 
     # Query input_assembly against each loci in the cgMLST database
-    df = multiprocess_blastn_call(database_files, input_assembly, out_dir)
+    df = multiprocess_blastn_call(database_files, input_assembly, outdir)
 
     # Grab sample name from input_assembly
     if sample_name is None:
         sample_name = input_assembly.with_suffix("").name.replace(".pilon", "")
 
     # Prepare detailed report
-    detailed_report = generate_detailed_report(df=df, out_dir=out_dir, sample_name=sample_name)
+    detailed_report = generate_detailed_report(df=df, out_dir=outdir, sample_name=sample_name)
 
     # Prepare cgMLST report
-    cgmlst_allele_report = generate_cgmlst_report(df=df, out_dir=out_dir, sample_name=sample_name)
+    cgmlst_allele_report = generate_cgmlst_report(df=df, out_dir=outdir, sample_name=sample_name)
 
     # Move BLASTn files
-    move_blastn_files(out_dir=out_dir)
+    move_blastn_files(out_dir=outdir)
 
     logging.info(f"cgMLST Allele Report: {cgmlst_allele_report}")
     logging.info(f"Detailed Report: {detailed_report}")
@@ -97,13 +97,13 @@ def get_database_files(database: Path, loci_suffix: str = "*.gz"):
                             f"Try re-running the script with the --create_db flag.")
 
 
-def create_outdir(out_dir: Path) -> Path:
+def create_outdir(outdir: Path) -> Path:
     """
     Creates output directory, quits/raises error if it already exists
     """
-    os.makedirs(str(out_dir), exist_ok=False)
-    logging.debug(f"Created directory {out_dir}")
-    return out_dir
+    os.makedirs(str(outdir), exist_ok=False)
+    logging.debug(f"Created directory {outdir}")
+    return outdir
 
 
 def multiprocess_blastn_call(database_files: list, input_assembly: Path, outdir: Path) -> [pd.DataFrame]:

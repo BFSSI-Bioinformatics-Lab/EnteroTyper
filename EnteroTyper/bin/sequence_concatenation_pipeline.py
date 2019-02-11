@@ -13,7 +13,7 @@ from EnteroTyper.bin.accessories import run_subprocess
 def sequence_concatenation_pipeline(targets: list, database: Path, outdir: Path):
     targets = [Path(target) for target in targets]
     database_files = get_database_files(database=database)
-    create_outdir(out_dir=outdir)
+    create_outdir(outdir=outdir)
 
     report_dict = {}
     for i, target in enumerate(targets):
@@ -53,7 +53,7 @@ def sequence_concatenation_pipeline(targets: list, database: Path, outdir: Path)
                                                       sample_name=target.name.rsplit("_", 1)[0])
         sequence_type_report_list.append(cgmlst_allele_report)
 
-    call_sequence_comparison(targets=sequence_type_report_list, out_dir=outdir / 'sequence_type_comparisons')
+    call_sequence_comparison(targets=sequence_type_report_list, outdir=outdir / 'sequence_type_comparisons')
 
     # Cleanup reports
     for report in sequence_type_report_list:

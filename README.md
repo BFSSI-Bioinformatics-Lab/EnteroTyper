@@ -37,11 +37,13 @@ Commands:
 ```
 Usage: enterotyper.py typer [OPTIONS]
 
+  Types an assembly based on an Enterobase scheme
+
 Options:
   -i, --input_assembly PATH  Path to input assembly in FASTA format
                              [required]
   -db, --database PATH       Path to your MLST database  [required]
-  -o, --out_dir PATH         Root directory to store all output files
+  -o, --outdir PATH         Root directory to store all output files
                              [required]
   --create_db                Set this flag to create the blastDB files using
                              makeblastdb in the specified database
@@ -56,11 +58,13 @@ Options:
 ```
 Usage: enterotyper.py bulk [OPTIONS]
 
+  Runs typer on many samples simultaneously
+
 Options:
   -i, --input_dir PATH  Path to directory containing FASTA assemblies
                         [required]
   -db, --database PATH  Path to your MLST database  [required]
-  -o, --out_dir PATH    Root directory to store all output files  [required]
+  -o, --outdir PATH    Root directory to store all output files  [required]
   --create_db           Set this flag to create the blastDB files using
                         makeblastdb in the specified database directory.Will
                         re-create the database files if they are already
@@ -90,12 +94,12 @@ Options:
 ```
 Usage: enterotyper.py compare [OPTIONS] [TARGETS]...
 
-  Takes a list of target *.cgMLST_Allele_Report.tsv files, followed by
-  several options. Number of mismatches will be indicated in output files -
+  Takes a list of target *.cgMLST_Allele_Report.tsv files as input.
+  Number of mismatches will be indicated in output files -
   a zero means no mismatches between types.
 
 Options:
-  -o, --out_dir PATH  Root directory to store all output files  [required]
+  -o, --outdir PATH  Root directory to store all output files  [required]
   -v, --verbose       Set this flag to enable more verbose logging.
   --help              Show this message and exit.
 ```
