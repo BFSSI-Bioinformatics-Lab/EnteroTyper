@@ -13,13 +13,15 @@ from EnteroTyper.bin.accessories import run_subprocess
 script = os.path.basename(__file__)
 
 
-def type_sample(input_assembly: Path, database: Path, outdir: Path, create_db: bool, sample_name: str = None):
+def type_sample(input_assembly: Path, database: Path, outdir: Path, create_db: bool, keep_blast: bool,
+                sample_name: str = None):
     """
     Function wrapping all of the functionality of the enterobase_typer script. Can be called directly.
     """
 
     # Output directory creation/validation
-    create_outdir(outdir=outdir)
+    os.makedirs(str(outdir), exist_ok=False)
+    logging.debug(f"Created directory {outdir}")
 
     logging.debug(f"input_assembly: {input_assembly}")
     logging.debug(f"database: {database}")
@@ -40,46 +42,54 @@ def type_sample(input_assembly: Path, database: Path, outdir: Path, create_db: b
         sample_name = input_assembly.with_suffix("").name.replace(".pilon", "")
 
     # Prepare detailed report
-    detailed_report = generate_detailed_report(df=df, out_dir=outdir, sample_name=sample_name)
+    detailed_report = generate_detailed_report(df=df, outdir=outdir, sample_name=sample_name)
 
     # Prepare cgMLST report
-    cgmlst_allele_report = generate_cgmlst_report(df=df, out_dir=outdir, sample_name=sample_name)
-
-    # Move BLASTn files
-    move_blastn_files(out_dir=outdir)
+    cgmlst_allele_report = generate_cgmlst_report(df=df, outdir=outdir, sample_name=sample_name)
 
     logging.info(f"cgMLST Allele Report: {cgmlst_allele_report}")
     logging.info(f"Detailed Report: {detailed_report}")
+
+    if keep_blast:
+        # Move BLASTn files
+        move_blastn_files(indir=outdir, outdir=(outdir / 'blastn_output'))
+    else:
+        # Delete all blastn files
+        delete_blastn_files(indir=outdir)
     return detailed_report
 
 
-def move_blastn_files(out_dir: Path):
+def move_blastn_files(indir: Path, outdir: Path):
     """
     Moves all of the BLASTn output to a new folder 'blastn_output'
     """
-    blastn_folder = out_dir / 'blastn_output'
-    os.makedirs(str(blastn_folder), exist_ok=True)
-    blastn_files = list(out_dir.glob("*.BLASTn"))
+    os.makedirs(str(outdir), exist_ok=True)
+    blastn_files = list(indir.glob("*.BLASTn"))
     for f in blastn_files:
-        shutil.move(str(f), str(blastn_folder / f.name))
+        shutil.move(str(f), str(outdir / f.name))
 
 
-def generate_cgmlst_report(df: pd.DataFrame, out_dir: Path, sample_name: str) -> Path:
+def delete_blastn_files(indir: Path):
+    blastn_files = list(indir.glob("*.BLASTn"))
+    [os.remove(str(f)) for f in blastn_files]
+
+
+def generate_cgmlst_report(df: pd.DataFrame, outdir: Path, sample_name: str) -> Path:
     """
     Generates the cgMLST report along with a transposed version within the out_dir folder
     """
-    cgmlst_allele_report = out_dir / f"{sample_name}_cgMLST_Allele_Report.tsv"
+    cgmlst_allele_report = outdir / f"{sample_name}_cgMLST_Allele_Report.tsv"
     cgmlst_df = get_sequence_type(df)
     cgmlst_df_transposed = cgmlst_df.transpose()
     cgmlst_df_transposed.to_csv(cgmlst_allele_report, sep="\t", header=False)
     return cgmlst_allele_report
 
 
-def generate_detailed_report(df: pd.DataFrame, out_dir: Path, sample_name: str) -> Path:
+def generate_detailed_report(df: pd.DataFrame, outdir: Path, sample_name: str) -> Path:
     """
     Generates the detailed report within the out_dir folder
     """
-    output_detailed_report = out_dir / f"{sample_name}_BLASTn_Detailed_Report.tsv"
+    output_detailed_report = outdir / f"{sample_name}_BLASTn_Detailed_Report.tsv"
     df.to_csv(output_detailed_report, sep="\t", index=None)
     return output_detailed_report
 
@@ -95,15 +105,6 @@ def get_database_files(database: Path, loci_suffix: str = "*.gz"):
     else:
         raise EmptyDatabase(f"Could not find database files at {database}. "
                             f"Try re-running the script with the --create_db flag.")
-
-
-def create_outdir(outdir: Path) -> Path:
-    """
-    Creates output directory, quits/raises error if it already exists
-    """
-    os.makedirs(str(outdir), exist_ok=False)
-    logging.debug(f"Created directory {outdir}")
-    return outdir
 
 
 def multiprocess_blastn_call(database_files: list, input_assembly: Path, outdir: Path) -> [pd.DataFrame]:
@@ -178,6 +179,7 @@ def process_blastn_df(df: pd.DataFrame, locus_name: str) -> pd.DataFrame:
     df = df.sort_values(["pident", "lratio"], ascending=False)
     df = df.reset_index(drop=True)
 
+    # TODO: Revisit this and rework it. The hit classification is not great.
     hit_type = None
     if len(df) == 1:
         # CASE 1: PERFECT SINGLE HIT
