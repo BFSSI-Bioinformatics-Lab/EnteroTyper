@@ -6,7 +6,9 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="EnteroTyper",
-    install_requires=['click', 'pandas', 'xlsxwriter', 'tqdm', 'dataclasses'],
+    install_requires=['click', 'pandas', 'xlsxwriter', 'tqdm', 'dataclasses', 'pytest'],
+    tests_require=['pytest'],
+    setup_requires=['pytest-runner'],
     python_requires='~=3.6',
     description="Scripts to type and compare assemblies based off of Enterobase schemes",
     long_description=long_description,
