@@ -4,6 +4,7 @@ python:
 cache: pip
 
 before_install:
+  - sudo apt update
   - sudo apt install muscle
   - sudo apt install ncbi-blast+
 
