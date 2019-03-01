@@ -1,8 +1,11 @@
 language: python
 python:
   - '3.6'
-  - '3.7'
 cache: pip
+
+before_install:
+  - sudo apt install muscle
+  - sudo apt install ncbi-blast+
 
 install:
   - pip install -e .
