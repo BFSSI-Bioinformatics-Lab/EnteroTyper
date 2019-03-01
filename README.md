@@ -18,7 +18,7 @@ pip install EnteroTyper
 ```
 
 ## Usage
-### Calling EnteroTyper (*enterotyper.py*)
+### Calling EnteroTyper
 ```
 Usage: enterotyper [OPTIONS] COMMAND [ARGS]...
 
