@@ -5,7 +5,7 @@ This is a set of scripts to type assemblies according to schemes retrieved from 
 Enterobase databases can be manually retrieved with [EnterobasePull](https://github.com/bfssi-forest-dussault/EnterobasePull). Database files retrieved from Enterobase can be automatically formatted via makeblastdb by the typer script.
 
 ## Requirements
-- Python >= 3.7
+- Python >= 3.6
 - [ncbi-blast+](https://blast.ncbi.nlm.nih.gov/Blast.cgi?PAGE_TYPE=BlastDocs&DOC_TYPE=Download) (makeblastdb and blastn must be in your $PATH)
 - [MUSCLE](https://www.drive5.com/muscle/) (muscle must be in your $PATH)
 
