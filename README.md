@@ -1,3 +1,6 @@
+[![Build Status](https://travis-ci.org/BFSSI-Bioinformatics-Lab/EnteroTyper.svg?branch=master)](https://travis-ci.org/BFSSI-Bioinformatics-Lab/EnteroTyper)
+[![PyPI version](https://badge.fury.io/py/EnteroTyper.svg)](https://badge.fury.io/py/EnteroTyper)
+
 # EnteroTyper
 
 This is a set of scripts to type assemblies according to schemes retrieved from Enterobase.
