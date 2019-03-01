@@ -1,0 +1,20 @@
+language: python
+python:
+  - '3.6'
+  - '3.7'
+cache: pip
+
+install:
+  - pip install -e .
+branches:
+  only:
+    - master
+
+before_script:
+  - pip install codecov
+
+script:
+  - coverage run setup.py pytest
+
+after_success:
+  - codecov
