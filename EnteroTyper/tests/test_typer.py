@@ -1,5 +1,4 @@
 import tempfile
-
 from EnteroTyper.bin.typer import *
 from pathlib import Path
 
@@ -41,7 +40,8 @@ def test_type_sample():
         expected_columns = ['qseqid', 'sseqid', 'slen', 'length', 'qstart', 'qend',
                             'pident', 'lratio', 'locus', 'hit_type', 'qseq_strand_aware']
         if 'assembly_3' not in assembly.name:
-            assert list(df.columns) == expected_columns
+            for column in list(df.columns):
+                assert column in expected_columns
 
         # Verify individual assembly test case results
         if 'assembly_1' in assembly.name:
@@ -103,10 +103,6 @@ def test_generate_detailed_report():
 
 
 def test_get_database_files():
-    pass
-
-
-def test_create_outdir():
     pass
 
 
