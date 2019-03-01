@@ -15,7 +15,7 @@ def test_type_sample():
     # Establish test data directories, make sure they are structured correctly
     test_data_dir = Path(__file__).parent / 'data'
     assert test_data_dir.exists()
-    test_database = Path(__file__).parent / 'data' / 'mlst_database'
+    test_database = Path(__file__).parent / 'data' / 'database'
     assert test_database.exists()
 
     test_assembly_1 = test_data_dir / 'assembly_1.fasta'  # recA_1 and fumC_7
@@ -25,6 +25,7 @@ def test_type_sample():
 
     # Test if reports are generated
     for assembly in test_assemblies:
+        assert assembly.exists()
         # Set up temporary directory
         tmpoutdir = Path(f'/tmp/typer_testing_{assembly.name}')
         if tmpoutdir.exists():
@@ -59,11 +60,38 @@ def test_type_sample():
 
 
 def test_move_blastn_files():
-    pass
+    # Create mock directory structure
+    outdir = Path(tempfile.mkdtemp())
+    indir = Path(tempfile.mkdtemp())
+    blastn_file = tempfile.NamedTemporaryFile(mode='w+', dir=indir, encoding='utf-8', suffix=".BLASTn")
+    blastn_file.write("tmp")
+    blastn_file.flush()
+
+    # Ensure indir has BLASTn file inside of it
+    assert len((list(indir.glob("*.BLASTn")))) != 0
+
+    # Call method on indir and confirm that BLASTn file was moved to outdir
+    move_blastn_files(indir=indir, outdir=outdir)
+    assert len((list(outdir.glob("*.BLASTn")))) != 0
+
+    # Cleanup
+    shutil.rmtree(outdir)
+    shutil.rmtree(indir)
 
 
 def test_delete_blastn_files():
-    pass
+    # Create mock directory structure
+    indir = Path(tempfile.mkdtemp())
+    blastn_file = tempfile.NamedTemporaryFile(mode='w+', dir=indir, encoding='utf-8', suffix=".BLASTn")
+    blastn_file.write("tmp")
+    blastn_file.flush()
+
+    # Ensure indir has BLASTn file inside of it
+    assert len((list(indir.glob("*.BLASTn")))) != 0
+    delete_blastn_files(indir=indir)
+
+    # Ensure file was deleted
+    assert len((list(indir.glob("*.BLASTn")))) == 0
 
 
 def test_generate_cgmlst_report():
