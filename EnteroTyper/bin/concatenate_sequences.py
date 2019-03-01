@@ -6,14 +6,15 @@ from copy import deepcopy
 from tqdm import tqdm
 from pathlib import Path
 from EnteroTyper.bin.compare_sequences_types import call_sequence_comparison
-from EnteroTyper.bin.typer import get_database_files, create_outdir, generate_cgmlst_report
+from EnteroTyper.bin.typer import get_database_files, generate_cgmlst_report
 from EnteroTyper.bin.accessories import run_subprocess
 
 
 def sequence_concatenation_pipeline(targets: list, database: Path, outdir: Path):
     targets = [Path(target) for target in targets]
     database_files = get_database_files(database=database)
-    create_outdir(outdir=outdir)
+    os.makedirs(str(outdir), exist_ok=False)
+    logging.debug(f"Created directory {outdir}")
 
     report_dict = {}
     for i, target in enumerate(targets):
@@ -49,7 +50,7 @@ def sequence_concatenation_pipeline(targets: list, database: Path, outdir: Path)
     sequence_type_report_list = []
     for target in tqdm(targets):
         df = pd.read_csv(target, sep='\t')
-        cgmlst_allele_report = generate_cgmlst_report(df=df, out_dir=outdir,
+        cgmlst_allele_report = generate_cgmlst_report(df=df, outdir=outdir,
                                                       sample_name=target.name.rsplit("_", 1)[0])
         sequence_type_report_list.append(cgmlst_allele_report)
 

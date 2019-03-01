@@ -1,12 +1,13 @@
+import os
 import logging
 import pandas as pd
 from pathlib import Path
 from tqdm import tqdm
-from EnteroTyper.bin.typer import create_outdir
 
 
 def call_sequence_comparison(targets: list, outdir: Path):
-    create_outdir(outdir=outdir)
+    os.makedirs(str(outdir), exist_ok=False)
+    logging.debug(f"Created directory {outdir}")
 
     # Populate target_dict (key=sample name, value=path to report)
     targets = [Path(target) for target in targets]
