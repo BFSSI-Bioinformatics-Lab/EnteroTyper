@@ -33,19 +33,22 @@ def dependency_check(dependency: str) -> bool:
         return False
 
 
-def check_all_dependencies(dependencies: [str]):
+def check_all_dependencies(dependencies: [str]) -> bool:
     # Dependency check
     logging.info("Conducting dependency check...")
     dependency_dict = dict()
+    dependencies_met = True
     for dependency in dependencies:
         dependency_dict[dependency] = dependency_check(dependency)
     if False in dependency_dict.values():
+        dependencies_met = False
         logging.error("ERROR: Cannot locate some dependencies in $PATH...")
         for key, value in dependency_dict.items():
             if not value:
                 logging.error(f"Dependency missing: {key}")
-        quit()
+        return dependencies_met
     else:
         for key, value in dependency_dict.items():
             logging.debug(f"Dependency {key}: {value}")
-    logging.info("Dependencies OK")
+        logging.info("Dependencies OK")
+        return dependencies_met
