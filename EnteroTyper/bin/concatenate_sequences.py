@@ -10,16 +10,21 @@ from EnteroTyper.bin.typer import get_database_files, generate_cgmlst_report
 from EnteroTyper.bin.accessories import run_subprocess
 
 
+def build_report_dict(targets: [Path]) -> dict:
+    report_dict = {}
+    for i, target in enumerate(targets):
+        target_name = target.with_suffix("").name + f'_{i}'
+        report_dict[target_name] = target
+    return report_dict
+
+
 def sequence_concatenation_pipeline(targets: list, database: Path, outdir: Path):
     targets = [Path(target) for target in targets]
     database_files = get_database_files(database=database)
     os.makedirs(str(outdir), exist_ok=False)
     logging.debug(f"Created directory {outdir}")
 
-    report_dict = {}
-    for i, target in enumerate(targets):
-        target_name = target.with_suffix("").name + f'_{i}'
-        report_dict[target_name] = target
+    report_dict = build_report_dict(targets=targets)
 
     logging.info("Generating FASTA files from reports")
     df_params = [(database_file, outdir, report_dict) for database_file in database_files]
@@ -72,12 +77,7 @@ def get_top_qseq(df: pd.DataFrame, locus: str) -> str:
     return qseq
 
 
-def read_blast_report(report: Path):
-    df = pd.read_csv(report, delimiter="\t")
-    return df
-
-
-def write_fasta(database_file: Path, outdir: Path, report_dict: dict):
+def write_fasta(database_file: Path, outdir: Path, report_dict: dict) -> Path:
     locus = database_file.with_suffix("").name
     locus_length = 0
     logging.debug(f"{locus}...")
@@ -85,16 +85,17 @@ def write_fasta(database_file: Path, outdir: Path, report_dict: dict):
     with open(outfile, "w") as out:
         for target, report_path in report_dict.items():
             out.write(f">{target}\n")
-            df = read_blast_report(report_path)
+            df = pd.read_csv(report_path, delimiter="\t")
             qseq = get_top_qseq(df=df, locus=locus)
             if type(qseq) == str:
                 locus_length = len(qseq)
             else:
                 qseq = "N" * locus_length
             out.write(f"{qseq}\n")
+    return Path(outfile)
 
 
-def call_muscle(infile: Path):
+def call_muscle(infile: Path) -> Path:
     """
     Produces an aligned version of an input FASTA file, then removes the original.
     """
@@ -102,6 +103,7 @@ def call_muscle(infile: Path):
     cmd = f"muscle -in {infile} -out {outfile} -maxiters 1"
     run_subprocess(cmd, get_stdout=True)
     infile.unlink()
+    return outfile
 
 
 def concatenate_sequence_directory(sample_ids: [str], sequence_directory: Path, n_processes: int, outdir: Path) -> Path:
