@@ -2,6 +2,12 @@ import tempfile
 from EnteroTyper.bin.typer import *
 from pathlib import Path
 
+# Setup basic test data structure
+test_data_dir = Path(__file__).parent / 'data'
+test_database = Path(__file__).parent / 'data' / 'database'
+assert test_data_dir.exists()
+assert test_database.exists()
+
 
 def test_type_sample():
     """
@@ -11,12 +17,8 @@ def test_type_sample():
     assembly_3.fasta should not contain any markers
     :return:
     """
-    # Establish test data directories, make sure they are structured correctly
-    test_data_dir = Path(__file__).parent / 'data'
-    assert test_data_dir.exists()
-    test_database = Path(__file__).parent / 'data' / 'database'
-    assert test_database.exists()
 
+    # Grab test assemblies
     test_assembly_1 = test_data_dir / 'assembly_1.fasta'  # recA_1 and fumC_7
     test_assembly_2 = test_data_dir / 'assembly_2.fasta'  # recA_1 and fumC_16
     test_assembly_3 = test_data_dir / 'assembly_3.fasta'  # No markers
@@ -103,7 +105,8 @@ def test_generate_detailed_report():
 
 
 def test_get_database_files():
-    pass
+    database_files = get_database_files(database=test_database)
+    assert len(database_files) == 7
 
 
 def test_multiprocess_blastn_call():
