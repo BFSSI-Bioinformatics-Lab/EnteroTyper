@@ -22,7 +22,8 @@ def test_sequence_concatenation_pipeline():
     detailed_report_list = bt.bulk_sample_typing(indir=test_data_dir,
                                                  outdir=outdir,
                                                  database=test_database,
-                                                 keep_blast=False)
+                                                 keep_blast=False,
+                                                 create_db=True)
     cs.sequence_concatenation_pipeline(targets=detailed_report_list,
                                        database=test_database,
                                        outdir=tmpoutdir)
