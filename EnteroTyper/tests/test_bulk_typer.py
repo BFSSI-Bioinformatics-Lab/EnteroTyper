@@ -3,6 +3,12 @@ import shutil
 from EnteroTyper.bin.bulk_typer import get_sample_name_dict, bulk_sample_typing
 from pathlib import Path
 
+# Setup basic test data structure
+test_data_dir = Path(__file__).parent / 'data'
+test_database = Path(__file__).parent / 'data' / 'database'
+assert test_data_dir.exists()
+assert test_database.exists()
+
 
 def test_get_sample_name_dict():
     # Create mock directory structure
@@ -27,11 +33,6 @@ def test_get_sample_name_dict():
 
 
 def test_bulk_sample_typing():
-    test_data_dir = Path(__file__).parent / 'data'
-    assert test_data_dir.exists()
-    test_database = Path(__file__).parent / 'data' / 'database'
-    assert test_database.exists()
-
     # Set up temporary directory
     tmpoutdir = Path(f'/tmp/typer_testing_bulk')
     if tmpoutdir.exists():
