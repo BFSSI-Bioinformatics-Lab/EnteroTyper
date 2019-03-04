@@ -39,6 +39,6 @@ def test_bulk_sample_typing():
         shutil.rmtree(tmpoutdir)
 
     detailed_report_list = bulk_sample_typing(indir=test_data_dir, outdir=tmpoutdir, database=test_database,
-                                              keep_blast=False)
+                                              keep_blast=False, create_db=True)
     # There should be 3 reports generated - one for each input sample
     assert len(detailed_report_list) == 3
