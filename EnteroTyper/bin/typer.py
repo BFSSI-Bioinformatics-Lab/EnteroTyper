@@ -5,6 +5,7 @@ import logging
 import multiprocessing
 import pandas as pd
 
+from typing import Optional
 from tqdm import tqdm
 from multiprocessing import Pool
 from pathlib import Path
@@ -94,7 +95,7 @@ def generate_detailed_report(df: pd.DataFrame, outdir: Path, sample_name: str) -
     return output_detailed_report
 
 
-def get_database_files(database: Path, loci_suffix: str = "*.gz"):
+def get_database_files(database: Path, loci_suffix: str = "*.gz") -> Optional[list]:
     """
     Grabs database files within a provided directory and returns a list of everything present.
     Matches against a given suffix (defaults to *.gz, the expected database file extension)
