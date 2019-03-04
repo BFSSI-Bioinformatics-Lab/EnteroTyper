@@ -14,12 +14,12 @@ def get_sample_name_dict(indir: Path) -> dict:
     return sample_name_dict
 
 
-def bulk_sample_typing(indir: Path, outdir: Path, database: Path, keep_blast: bool) -> list:
+def bulk_sample_typing(indir: Path, outdir: Path, database: Path, keep_blast: bool, create_db: bool = False) -> list:
     sample_name_dict = get_sample_name_dict(indir=indir)
     detailed_report_list = []
     for sample_name, assembly in sample_name_dict.items():
         sample_out_dir = outdir / sample_name
         detailed_report = type_sample(input_assembly=assembly, database=database, outdir=sample_out_dir,
-                                      create_db=False, sample_name=sample_name, keep_blast=keep_blast)
+                                      create_db=create_db, sample_name=sample_name, keep_blast=keep_blast)
         detailed_report_list.append(detailed_report)
     return detailed_report_list
