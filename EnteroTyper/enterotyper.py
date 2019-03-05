@@ -27,9 +27,9 @@ def convert_to_path(ctx, param, value):
 def print_version(ctx, param, value):
     if not value or ctx.resilient_parsing:
         return
-    logging.info(f"Version: {__version__}")
-    logging.info(f"Author: {__author__}")
-    logging.info(f"Email: {__email__}")
+    print(f"Version: {__version__}")
+    print(f"Author: {__author__}")
+    print(f"Email: {__email__}")
     quit()
 
 
