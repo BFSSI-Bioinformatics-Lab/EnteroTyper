@@ -73,6 +73,12 @@ def enterotyper():
               is_flag=True,
               default=False,  # Set this to false eventually
               help='Set this flag to enable more verbose logging.')
+@click.option('--version',
+              help='Use this flag to print the version and exit.',
+              is_flag=True,
+              is_eager=True,
+              callback=print_version,
+              expose_value=False)
 def typer(input_assembly: Path, database: Path, outdir: Path, create_db: bool, keep_blast: bool, verbose: bool):
     if verbose:
         logging.basicConfig(
@@ -128,6 +134,12 @@ def typer(input_assembly: Path, database: Path, outdir: Path, create_db: bool, k
               is_flag=True,
               default=False,  # Set this to false eventually
               help='Set this flag to enable more verbose logging.')
+@click.option('--version',
+              help='Use this flag to print the version and exit.',
+              is_flag=True,
+              is_eager=True,
+              callback=print_version,
+              expose_value=False)
 def bulk(indir: Path, database: Path, outdir: Path, create_db: bool, keep_blast: bool, verbose: bool):
     if verbose:
         logging.basicConfig(
@@ -177,6 +189,12 @@ def bulk(indir: Path, database: Path, outdir: Path, create_db: bool, keep_blast:
               is_flag=True,
               default=False,  # Set this to false eventually
               help='Set this flag to enable more verbose logging.')
+@click.option('--version',
+              help='Use this flag to print the version and exit.',
+              is_flag=True,
+              is_eager=True,
+              callback=print_version,
+              expose_value=False)
 @click.argument('targets', nargs=-1, type=click.Path(exists=True))
 def concatenate(targets, outdir, database, verbose):
     if verbose:
@@ -211,6 +229,12 @@ def concatenate(targets, outdir, database, verbose):
               is_flag=True,
               default=False,
               help='Set this flag to enable more verbose logging.')
+@click.option('--version',
+              help='Use this flag to print the version and exit.',
+              is_flag=True,
+              is_eager=True,
+              callback=print_version,
+              expose_value=False)
 @click.argument('targets', nargs=-1, type=click.Path(exists=True))
 def compare(targets, outdir, verbose):
     if verbose:
