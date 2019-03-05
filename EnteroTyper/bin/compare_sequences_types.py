@@ -44,7 +44,7 @@ def call_sequence_comparison(targets: list, outdir: Path):
             continue
         writer = pd.ExcelWriter(str(out_name), engine='xlsxwriter')
         df.to_excel(writer, sheet_name=key[:30])
-        worksheet = writer.sheets[key]
+        worksheet = writer.sheets[key[:30]]
         worksheet.conditional_format('B2:AZ4000', {'type': '2_color_scale'})
         writer.save()
 
