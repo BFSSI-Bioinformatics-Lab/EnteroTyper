@@ -35,7 +35,7 @@ def sequence_concatenation_pipeline(targets: list, database: Path, outdir: Path,
 
     logging.info("Aligning FASTA files with MUSCLE")
     fasta_files = list(outdir.glob("*.fasta"))
-    with multiprocessing.Pool(multiprocessing.cpu_count() - 1) as p:
+    with multiprocessing.Pool(threads) as p:
         p.map(call_muscle, fasta_files)
 
     # Grab newly aligned fasta files
@@ -44,6 +44,8 @@ def sequence_concatenation_pipeline(targets: list, database: Path, outdir: Path,
     # Create multifasta with fasconcat
     logging.info("Concatenating sequences")
     n_processes = int(multiprocessing.cpu_count() / 8)
+    if n_processes < 1:
+        n_processes = 1
     sample_ids = list(report_dict.keys())
     outfile = concatenate_sequence_directory(sample_ids=sample_ids, sequence_directory=outdir, n_processes=n_processes,
                                              outdir=outdir)
