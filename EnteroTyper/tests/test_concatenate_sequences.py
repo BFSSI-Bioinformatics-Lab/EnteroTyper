@@ -26,7 +26,8 @@ def test_sequence_concatenation_pipeline():
                                                  create_db=True)
     cs.sequence_concatenation_pipeline(targets=detailed_report_list,
                                        database=test_database,
-                                       outdir=tmpoutdir)
+                                       outdir=tmpoutdir,
+                                       threads=1)
 
     # TODO: Think of some better asserts. Obviously the tmpoutdir exists.
     assert tmpoutdir.exists()

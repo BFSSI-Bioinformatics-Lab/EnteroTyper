@@ -18,7 +18,9 @@ def build_report_dict(targets: [Path]) -> dict:
     return report_dict
 
 
-def sequence_concatenation_pipeline(targets: list, database: Path, outdir: Path):
+def sequence_concatenation_pipeline(targets: list, database: Path, outdir: Path, threads: int = None):
+    if threads is None:
+        threads = multiprocessing.cpu_count() - 1
     targets = [Path(target) for target in targets]
     database_files = get_database_files(database=database)
     os.makedirs(str(outdir), exist_ok=False)
@@ -28,7 +30,7 @@ def sequence_concatenation_pipeline(targets: list, database: Path, outdir: Path)
 
     logging.info("Generating FASTA files from reports")
     df_params = [(database_file, outdir, report_dict) for database_file in database_files]
-    with multiprocessing.Pool(multiprocessing.cpu_count() - 1) as p:
+    with multiprocessing.Pool(threads) as p:
         p.starmap(write_fasta, df_params)
 
     logging.info("Aligning FASTA files with MUSCLE")
