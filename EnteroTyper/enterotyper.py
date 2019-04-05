@@ -71,7 +71,7 @@ def enterotyper():
               default=False)
 @click.option('-v', '--verbose',
               is_flag=True,
-              default=False,  # Set this to false eventually
+              default=False,
               help='Set this flag to enable more verbose logging.')
 @click.option('--version',
               help='Use this flag to print the version and exit.',
@@ -132,7 +132,7 @@ def typer(input_assembly: Path, database: Path, outdir: Path, create_db: bool, k
               default=False)
 @click.option('-v', '--verbose',
               is_flag=True,
-              default=False,  # Set this to false eventually
+              default=False,
               help='Set this flag to enable more verbose logging.')
 @click.option('--version',
               help='Use this flag to print the version and exit.',
@@ -187,7 +187,7 @@ def bulk(indir: Path, database: Path, outdir: Path, create_db: bool, keep_blast:
               callback=convert_to_path)
 @click.option('-v', '--verbose',
               is_flag=True,
-              default=False,  # Set this to false eventually
+              default=False,
               help='Set this flag to enable more verbose logging.')
 @click.option('--version',
               help='Use this flag to print the version and exit.',
