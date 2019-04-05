@@ -23,7 +23,6 @@ def type_sample(input_assembly: Path, database: Path, outdir: Path, create_db: b
     # Output directory creation/validation
     os.makedirs(str(outdir), exist_ok=False)
     logging.debug(f"Created directory {outdir}")
-
     logging.debug(f"input_assembly: {input_assembly}")
     logging.debug(f"database: {database}")
     logging.debug(f"outdir: {outdir}")
@@ -264,6 +263,9 @@ def call_blastn(database_file: Path, query_fasta: Path, out_dir: Path) -> (Path,
     # Dynamically set word_size
     allele_length = get_allele_length(database_file=database_file.with_suffix(".gz"))
     word_size = round(allele_length / 4)
+    # Must be at least 7 for BLAST to work
+    if word_size < 7:
+        word_size = 7
 
     locus_name = database_file.with_suffix('').name
     reference_name = query_fasta.with_suffix('').name
